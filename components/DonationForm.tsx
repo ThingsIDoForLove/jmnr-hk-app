@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSync } from '../hooks/useSync';
@@ -20,7 +21,7 @@ interface DonationFormData {
   benefactorAddress?: string;
   category: 'charity' | 'zakat' | 'sadaqah' | 'other';
   description: string;
-  recipient: string;
+  recipient?: string;
 }
 
 const CURRENCIES = ['PKR'];
@@ -44,8 +45,14 @@ export function DonationForm() {
     benefactorAddress: '',
     category: 'charity',
     description: '',
-    recipient: '',
   });
+  const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    SecureStore.getItemAsync('username').then(val => {
+      if (val) setUsername(val);
+    });
+  }, []);
 
   const handleSubmit = async () => {
     if (!formData.amount || !formData.benefactorName || !formData.benefactorPhone) {
@@ -76,7 +83,7 @@ export function DonationForm() {
         benefactorAddress: formData.benefactorAddress || undefined,
         category: formData.category,
         description: formData.description || undefined,
-        recipient: formData.recipient,
+        recipient: username,
         date: new Date().toISOString(),
       });
 
@@ -96,7 +103,6 @@ export function DonationForm() {
                 benefactorAddress: '',
                 category: 'charity',
                 description: '',
-                recipient: '',
               });
             },
           },
@@ -124,7 +130,7 @@ export function DonationForm() {
               style={styles.amountInput}
               value={formData.amount}
               onChangeText={(text) => setFormData(prev => ({ ...prev, amount: text }))}
-              placeholder="۰.۰۰"
+              placeholder="0.00"
               keyboardType="numeric"
               editable={!isSubmitting}
             />
@@ -254,18 +260,6 @@ export function DonationForm() {
             placeholder="اس عطیہ کی مزید تفصیل"
             multiline
             numberOfLines={3}
-            editable={!isSubmitting}
-          />
-        </ThemedView>
-
-        {/* Recipient (last field) */}
-        <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle">وصول کنندہ *</ThemedText>
-          <TextInput
-            style={styles.textInput}
-            value={formData.recipient}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, recipient: text }))}
-            placeholder="ادارے یا فرد کا نام"
             editable={!isSubmitting}
           />
         </ThemedView>

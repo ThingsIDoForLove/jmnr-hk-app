@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useExpenseSync } from '../hooks/useExpenseSync';
 import { ThemedText } from './ThemedText';
@@ -15,38 +16,44 @@ import { ThemedView } from './ThemedView';
 interface ExpenseFormData {
   amount: string;
   currency: string;
-  payee: string;
+  payee?: string;
   category: 'food' | 'transport' | 'utilities' | 'health' | 'education' | 'other';
   description: string;
   isPersonal: boolean;
 }
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'PKR', 'SAR'];
+const CURRENCIES = ['PKR'];
 const CATEGORIES = [
-  { label: 'Food', value: 'food' },
-  { label: 'Transport', value: 'transport' },
-  { label: 'Utilities', value: 'utilities' },
-  { label: 'Health', value: 'health' },
-  { label: 'Education', value: 'education' },
-  { label: 'Other', value: 'other' },
+  { label: 'خوراک', value: 'food' },
+  { label: 'سفر', value: 'transport' },
+  { label: 'یوٹیلیٹیز', value: 'utilities' },
+  { label: 'صحت', value: 'health' },
+  { label: 'تعلیم', value: 'education' },
+  { label: 'دیگر', value: 'other' },
 ];
 
 export function ExpenseForm() {
-  const { saveExpense, syncStatus, networkStatus, manualSync } = useExpenseSync();
+  const { saveExpense } = useExpenseSync();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [formData, setFormData] = useState<ExpenseFormData>({
     amount: '',
     currency: 'USD',
-    payee: '',
     category: 'food',
     description: '',
     isPersonal: false,
   });
+  const [username, setUsername] = useState('');
+
+  useEffect(() => {
+    SecureStore.getItemAsync('username').then(val => {
+      if (val) setUsername(val);
+    });
+  }, []);
 
   const handleSubmit = async () => {
-    if (!formData.amount || !formData.payee) {
+    if (!formData.amount) {
       Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
@@ -63,7 +70,7 @@ export function ExpenseForm() {
       await saveExpense({
         amount,
         currency: formData.currency,
-        payee: formData.payee,
+        payee: username,
         category: formData.category,
         description: formData.description || undefined,
         date: new Date().toISOString(),
@@ -80,7 +87,6 @@ export function ExpenseForm() {
               setFormData({
                 amount: '',
                 currency: 'USD',
-                payee: '',
                 category: 'food',
                 description: '',
                 isPersonal: false,
@@ -99,13 +105,13 @@ export function ExpenseForm() {
   return (
     <ScrollView style={styles.container}>
       <ThemedView style={styles.header}>
-        <ThemedText type="title">Record Expense</ThemedText>
+        <ThemedText type="title" style={{textAlign: 'right'}}>خرچ درج کریں</ThemedText>
       </ThemedView>
 
       <ThemedView style={styles.form}>
         {/* Amount */}
         <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle">Amount *</ThemedText>
+          <ThemedText type="subtitle" style={{textAlign: 'right'}}>رقم *</ThemedText>
           <View style={styles.amountContainer}>
             <TextInput
               style={styles.amountInput}
@@ -151,21 +157,9 @@ export function ExpenseForm() {
           )}
         </ThemedView>
 
-        {/* Payee */}
-        <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle">Payee *</ThemedText>
-          <TextInput
-            style={styles.textInput}
-            value={formData.payee}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, payee: text }))}
-            placeholder="Person or business name"
-            editable={!isSubmitting}
-          />
-        </ThemedView>
-
         {/* Category */}
         <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle">Category</ThemedText>
+          <ThemedText type="subtitle" style={{textAlign: 'right'}}>زمرہ</ThemedText>
           <TouchableOpacity
             style={styles.categoryButton}
             onPress={() => setShowCategoryPicker(!showCategoryPicker)}
@@ -203,30 +197,16 @@ export function ExpenseForm() {
 
         {/* Description */}
         <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle">Description (Optional)</ThemedText>
+          <ThemedText type="subtitle" style={{textAlign: 'right'}}>تفصیل (اختیاری)</ThemedText>
           <TextInput
             style={[styles.textInput, styles.textArea]}
             value={formData.description}
             onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
-            placeholder="Additional details about this expense"
+            placeholder="اس خرچ کی مزید تفصیل"
             multiline
             numberOfLines={3}
             editable={!isSubmitting}
           />
-        </ThemedView>
-
-        {/* Personal Toggle */}
-        <ThemedView style={styles.inputGroup}>
-          <TouchableOpacity
-            style={styles.toggleContainer}
-            onPress={() => setFormData(prev => ({ ...prev, isPersonal: !prev.isPersonal }))}
-            disabled={isSubmitting}
-          >
-            <View style={[styles.toggle, formData.isPersonal && styles.toggleActive]} />
-            <ThemedText style={styles.toggleLabel}>
-              Mark as personal expense
-            </ThemedText>
-          </TouchableOpacity>
         </ThemedView>
 
         {/* Submit Button */}
@@ -239,18 +219,10 @@ export function ExpenseForm() {
             <ActivityIndicator color="#fff" />
           ) : (
             <ThemedText style={styles.submitButtonText}>
-              Save Expense
+              خرچ محفوظ کریں
             </ThemedText>
           )}
         </TouchableOpacity>
-
-        {/* Info Text */}
-        <ThemedView style={styles.infoContainer}>
-          <ThemedText style={styles.infoText}>
-            💡 Your expense will be saved locally and automatically synced when internet is available.
-            If no internet, it will be sent via SMS as a backup.
-          </ThemedText>
-        </ThemedView>
       </ThemedView>
     </ScrollView>
   );

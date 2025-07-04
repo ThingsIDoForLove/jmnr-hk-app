@@ -1,5 +1,9 @@
+import * as CryptoJS from 'crypto-js';
+import * as SecureStore from 'expo-secure-store';
 import { nanoid } from 'nanoid/non-secure';
 import { useCallback, useEffect, useState } from 'react';
+import { Alert } from 'react-native';
+import { API_BASE_URL } from '../constants/Config';
 import { databaseService } from '../services/DatabaseService';
 import { ExpenseRecord } from '../types/data';
 
@@ -10,6 +14,14 @@ export interface ExpenseSyncStatus {
   isConnected: boolean;
   isSyncing: boolean;
   totalAmount: number;
+}
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    result.push(arr.slice(i, i + size));
+  }
+  return result;
 }
 
 export function useExpenseSync() {
@@ -73,12 +85,67 @@ export function useExpenseSync() {
   const manualSync = useCallback(async () => {
     try {
       setSyncStatus(prev => ({ ...prev, isSyncing: true }));
-      // Mock sync - just mark all pending as synced
-      const pendingExpenses = await databaseService.getPendingSyncExpenses();
-      for (const expense of pendingExpenses) {
-        await databaseService.updateExpenseSyncStatus(expense.id, 'synced');
+      // 1. Get credentials
+      const username = await SecureStore.getItemAsync('username');
+      const signingKey = await SecureStore.getItemAsync('signingKey');
+      if (!username || !signingKey) {
+        Alert.alert('اکاؤنٹ ایکٹیویٹ نہیں ہے۔');
+        return;
       }
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 2. Get all pending expenses
+      const pendingExpenses = await databaseService.getPendingSyncExpenses();
+      if (pendingExpenses.length === 0) return;
+      // 3. Chunk into batches of 100
+      const batches = chunkArray(pendingExpenses, 100);
+      let hadError = false;
+      for (const batch of batches) {
+        const timestamp = new Date().toISOString();
+        
+        // Filter out internal fields before sending to API
+        const cleanBatch = batch.map(expense => ({
+          id: expense.id,
+          amount: expense.amount,
+          currency: expense.currency,
+          payee: expense.payee,
+          category: expense.category,
+          description: expense.description,
+          date: expense.date,
+          isPersonal: expense.isPersonal,
+        }));
+        
+        const batchString = JSON.stringify(cleanBatch);
+        const dataToSign = batchString + timestamp + username;
+        // 4. Calculate signature (HMAC-SHA256)
+        const signature = CryptoJS.HmacSHA256(
+          dataToSign,
+          signingKey
+        ).toString();
+
+        try {
+          const res = await fetch(`${API_BASE_URL}/expenses/bulk-save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              expenses: cleanBatch,
+              timestamp,
+              username,
+              signature,
+            }),
+          });
+          if (res.ok) {
+            for (const expense of batch) {
+              await databaseService.updateExpenseSyncStatus(expense.id, 'synced');
+            }
+          } else {
+            hadError = true;
+          }
+        } catch (err) {
+          hadError = true;
+        }
+      }
+      if (hadError) {
+        Alert.alert('کچھ اخراجات ہم آہنگ نہیں ہو سکے۔ براہ کرم ایڈمن سے رابطہ کریں۔');
+      }
     } catch (error) {
       console.error('Error during manual expense sync:', error);
     } finally {

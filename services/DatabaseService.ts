@@ -97,7 +97,6 @@ class DatabaseService {
   // Donation CRUD operations
   async saveDonation(donation: DonationRecord): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
-    console.log('FINAL DONATION OBJECT:', donation);
     const query = `
       INSERT OR REPLACE INTO donations (
         id, amount, currency, benefactor_name, benefactor_phone, benefactor_address, recipient, category, description, date,
