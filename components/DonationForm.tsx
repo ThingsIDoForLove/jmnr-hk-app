@@ -1,12 +1,12 @@
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSync } from '../hooks/useSync';
@@ -89,7 +89,7 @@ export function DonationForm() {
 
       Alert.alert(
         'کامیابی',
-        'عطیہ کامیابی سے محفوظ ہو گیا! جب انٹرنیٹ دستیاب ہوگا تو ہم آہنگ ہو جائے گا۔',
+        'عطیہ کامیابی سے محفوظ ہو گیا!۔',
         [
           {
             text: 'ٹھیک ہے',
@@ -116,15 +116,20 @@ export function DonationForm() {
   };
 
   return (
-    <KeyboardAwareScrollView style={styles.container} nestedScrollEnabled={true}>
-      <ThemedView style={styles.header}>
-        <ThemedText type="title">عطیہ درج کریں</ThemedText>
-      </ThemedView>
-
+    <KeyboardAwareScrollView 
+      style={styles.container} 
+      nestedScrollEnabled={true}
+      enableOnAndroid={true}
+      enableAutomaticScroll={true}
+      keyboardShouldPersistTaps="handled"
+      extraScrollHeight={150}
+      extraHeight={200}
+      contentContainerStyle={styles.scrollContent}
+    >
       <ThemedView style={styles.form}>
         {/* Amount */}
         <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle">رقم *</ThemedText>
+          <ThemedText type="subtitle" style={styles.label}>رقم *</ThemedText>
           <View style={styles.amountContainer}>
             <TextInput
               style={styles.amountInput}
@@ -174,19 +179,19 @@ export function DonationForm() {
 
         {/* Benefactor Name */}
         <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle">عطیہ دہندہ کا نام *</ThemedText>
+          <ThemedText type="subtitle" style={styles.label}>عطیہ کرنےوالےکانام *</ThemedText>
           <TextInput
             style={styles.textInput}
             value={formData.benefactorName}
             onChangeText={(text) => setFormData(prev => ({ ...prev, benefactorName: text }))}
-            placeholder="عطیہ دہندہ کا مکمل نام"
+            placeholder="عطیہ کرنےوالے کا مکمل نام"
             editable={!isSubmitting}
           />
         </ThemedView>
 
         {/* Benefactor Phone Number */}
         <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle">عطیہ دہندہ کا فون نمبر *</ThemedText>
+          <ThemedText type="subtitle" style={styles.label}> فون نمبر *</ThemedText>
           <TextInput
             style={styles.textInput}
             value={formData.benefactorPhone}
@@ -200,19 +205,19 @@ export function DonationForm() {
 
         {/* Benefactor Address (Optional) */}
         <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle">عطیہ دہندہ کا پتہ (اختیاری)</ThemedText>
+          <ThemedText type="subtitle" style={styles.label}>پتہ</ThemedText>
           <TextInput
             style={styles.textInput}
             value={formData.benefactorAddress}
             onChangeText={(text) => setFormData(prev => ({ ...prev, benefactorAddress: text }))}
-            placeholder="عطیہ دہندہ کا پتہ (اختیاری)"
+            placeholder="پتہ"
             editable={!isSubmitting}
           />
         </ThemedView>
 
         {/* Category */}
         <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle">زمرہ</ThemedText>
+          <ThemedText type="subtitle" style={styles.label}>قسم</ThemedText>
           <TouchableOpacity
             style={styles.categoryButton}
             onPress={() => setShowCategoryPicker(!showCategoryPicker)}
@@ -252,7 +257,7 @@ export function DonationForm() {
 
         {/* Description */}
         <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle">تفصیل (اختیاری)</ThemedText>
+          <ThemedText type="subtitle" style={styles.label}>تفصیل</ThemedText>
           <TextInput
             style={[styles.textInput, styles.textArea]}
             value={formData.description}
@@ -278,13 +283,6 @@ export function DonationForm() {
             </ThemedText>
           )}
         </TouchableOpacity>
-
-        {/* Info Text */}
-        <ThemedView style={styles.infoContainer}>
-          <ThemedText style={styles.infoText}>
-            💡 آپ کا عطیہ مقامی طور پر محفوظ ہو جائے گا اور جب انٹرنیٹ دستیاب ہوگا تو ہم آہنگ ہو جائے گا۔
-          </ThemedText>
-        </ThemedView>
       </ThemedView>
     </KeyboardAwareScrollView>
   );
@@ -294,12 +292,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingVertical: 20,
+  },
   header: {
     padding: 20,
     gap: 16,
   },
   form: {
     padding: 20,
+    paddingBottom: 80,
     gap: 20,
   },
   inputGroup: {
@@ -342,6 +345,7 @@ const styles = StyleSheet.create({
   },
   categoryButtonText: {
     fontSize: 16,
+    textAlign: 'right',
   },
   pickerContainer: {
     backgroundColor: '#fff',
@@ -360,6 +364,7 @@ const styles = StyleSheet.create({
   },
   pickerItemText: {
     fontSize: 16,
+    textAlign: 'right',
   },
   pickerItemTextSelected: {
     color: '#fff',
@@ -402,5 +407,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: '#1976D2',
+  },
+  label: {
+    textAlign: 'right',
+    fontWeight: '400',
   },
 }); 
