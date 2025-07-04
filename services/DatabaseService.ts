@@ -125,16 +125,36 @@ class DatabaseService {
     ]);
   }
 
-  async getDonations(limit = 50, offset = 0): Promise<DonationRecord[]> {
+  async getDonations(limit = 50, offset = 0, searchQuery?: string): Promise<DonationRecord[]> {
     if (!this.db) throw new Error('Database not initialized');
 
-    const query = `
-      SELECT * FROM donations 
-      ORDER BY date DESC 
-      LIMIT ? OFFSET ?
-    `;
+    let query: string;
+    let params: any[];
 
-    const result = await this.db.getAllAsync(query, [limit, offset]);
+    if (searchQuery && searchQuery.trim()) {
+      const searchTerm = `%${searchQuery.trim()}%`;
+      query = `
+        SELECT * FROM donations 
+        WHERE benefactor_name LIKE ? 
+           OR benefactor_phone LIKE ? 
+           OR benefactor_address LIKE ? 
+           OR category LIKE ? 
+           OR description LIKE ? 
+           OR amount LIKE ?
+        ORDER BY date DESC 
+        LIMIT ? OFFSET ?
+      `;
+      params = [searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, limit, offset];
+    } else {
+      query = `
+        SELECT * FROM donations 
+        ORDER BY date DESC 
+        LIMIT ? OFFSET ?
+      `;
+      params = [limit, offset];
+    }
+
+    const result = await this.db.getAllAsync(query, params);
     return result.map(this.mapDonationFromDB);
   }
 

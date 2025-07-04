@@ -9,7 +9,7 @@ import { useSync } from '@/hooks/useSync';
 import { databaseService } from '@/services/DatabaseService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function HomeScreen() {
   const [dbReady, setDbReady] = useState(false);
@@ -38,10 +38,10 @@ export default function HomeScreen() {
   }, [stats.totalAmount, expenseStats.totalAmount]);
 
   const renderMainView = () => (
-    <ScrollView>
-      <ThemedView style={styles.container}>
+    <ThemedView style={styles.mainContainer}>
+      <ThemedView style={styles.contentContainer}>
         <ThemedView style={styles.header}>
-          <ThemedText type="title">حسابِ خیر</ThemedText>
+          <ThemedText style={styles.title} type="title">حسابِ خیر</ThemedText>
           <ThemedText style={styles.subtitle}>
             عطیات کا شفاف حساب، آسان انداز میں
           </ThemedText>
@@ -120,7 +120,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </ThemedView>
       </ThemedView>
-    </ScrollView>
+    </ThemedView>
   );
 
   const renderHeader = (title: string) => (
@@ -191,6 +191,16 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contentContainer: {
+    width: '100%',
+    padding: 20,
+    maxWidth: 400,
+  },
   container: {
     flex: 1,
     padding: 20,
@@ -203,6 +213,9 @@ const styles = StyleSheet.create({
     marginTop: 40,
     marginBottom: 40,
     gap: 8,
+  },
+  title:{
+    lineHeight: 55
   },
   subtitle: {
     fontSize: 16,
@@ -232,7 +245,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 4,
-    textAlign: 'center'
+    textAlign: 'center',
+    lineHeight: 40
   },
   buttonSubtext: {
     fontSize: 14,
@@ -269,6 +283,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textAlign: 'center',
     color: '#1976D2',
+    lineHeight: 30,
   },
   statsText: {
     fontSize: 22,
@@ -317,5 +332,6 @@ const styles = StyleSheet.create({
   },
   navTitle: {
     flex: 1,
+    textAlign: "center"
   },
 }); 

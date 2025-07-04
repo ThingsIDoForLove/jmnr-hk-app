@@ -16,26 +16,55 @@ import { ThemedView } from './ThemedView';
 export function DonationList() {
   const { getDonations, getStatistics } = useSync();
   const [donations, setDonations] = useState<DonationRecord[]>([]);
-  const [allDonations, setAllDonations] = useState<DonationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ totalDonations: 0, totalAmount: 0 });
   
   // Search and pagination state
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentSearchTerm, setCurrentSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreData, setHasMoreData] = useState(true);
   const RECORDS_PER_PAGE = 30;
 
-  const loadDonations = async () => {
+  const getCategoryInUrdu = (category: string) => {
+    const categoryMap: { [key: string]: string } = {
+      'charity': 'خیرات',
+      'zakat': 'زکٰوۃ',
+      'sadaqah': 'صدقہ',
+      'other': 'دیگر'
+    };
+    return categoryMap[category] || category;
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const iconMap: { [key: string]: string } = {
+      'charity': '🤝',
+      'zakat': '🕌',
+      'sadaqah': '💝',
+      'other': '📋'
+    };
+    return iconMap[category] || '📋';
+  };
+
+  const loadDonations = async (searchQuery: string = '', page: number = 1) => {
     try {
+      setLoading(true);
+      
+      // Get donations with search and pagination from database
       const [donationData, statsData] = await Promise.all([
-        getDonations(1000, 0), // Get all donations for search
+        getDonations(RECORDS_PER_PAGE, (page - 1) * RECORDS_PER_PAGE, searchQuery),
         getStatistics(),
       ]);
-      setAllDonations(donationData);
+      
+      setDonations(donationData);
       setStats(statsData);
-      applySearchAndPagination(donationData, searchQuery, 1);
+      setCurrentPage(page);
+      
+      // Check if there are more records
+      const hasMore = donationData.length === RECORDS_PER_PAGE;
+      setHasMoreData(hasMore);
+      
     } catch (error) {
       console.error('Error loading donations:', error);
     } finally {
@@ -44,62 +73,49 @@ export function DonationList() {
     }
   };
 
-  const applySearchAndPagination = (data: DonationRecord[], query: string, page: number) => {
-    // Filter by search query
-    let filteredData = data;
-    if (query.trim()) {
-      const lowerQuery = query.toLowerCase();
-      filteredData = data.filter(donation => 
-        donation.recipient.toLowerCase().includes(lowerQuery) ||
-        donation.category.toLowerCase().includes(lowerQuery) ||
-        donation.description?.toLowerCase().includes(lowerQuery) ||
-        donation.currency.toLowerCase().includes(lowerQuery) ||
-        donation.amount.toString().includes(lowerQuery)
-      );
-    }
-
-    // Apply pagination
-    const startIndex = (page - 1) * RECORDS_PER_PAGE;
-    const endIndex = startIndex + RECORDS_PER_PAGE;
-    const paginatedData = filteredData.slice(startIndex, endIndex);
-    
-    setDonations(paginatedData);
-    setHasMoreData(endIndex < filteredData.length);
-    setCurrentPage(page);
-  };
-
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    applySearchAndPagination(allDonations, query, 1);
+  };
+
+  const performSearch = () => {
+    setCurrentSearchTerm(searchQuery);
+    loadDonations(searchQuery, 1);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setCurrentSearchTerm('');
+    loadDonations('', 1);
   };
 
   const loadNextPage = () => {
     if (hasMoreData) {
       const nextPage = currentPage + 1;
-      applySearchAndPagination(allDonations, searchQuery, nextPage);
+      loadDonations(currentSearchTerm, nextPage);
     }
   };
 
   const loadPreviousPage = () => {
     if (currentPage > 1) {
       const prevPage = currentPage - 1;
-      applySearchAndPagination(allDonations, searchQuery, prevPage);
+      loadDonations(currentSearchTerm, prevPage);
     }
   };
 
   useEffect(() => {
-    loadDonations();
+    loadDonations('', 1);
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadDonations();
+    loadDonations(currentSearchTerm, 1);
   };
 
   const renderDonationItem = ({ item }: { item: DonationRecord }) => (
     <ThemedView style={styles.donationItem}>
+      {/* Header with name and amount */}
       <View style={styles.donationHeader}>
-        <ThemedText type="subtitle" style={styles.recipient}>
+        <ThemedText type="subtitle" style={styles.benefactorName}>
           {item.benefactorName}
         </ThemedText>
         <ThemedText type="defaultSemiBold" style={styles.amount}>
@@ -107,71 +123,86 @@ export function DonationList() {
         </ThemedText>
       </View>
       
-      <View style={styles.donationDetails}>
+      {/* Contact Information and Category */}
+      <View style={styles.contactInfo}>
         <ThemedText style={styles.category}>
-          {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+          {getCategoryIcon(item.category)} {getCategoryInUrdu(item.category)}
         </ThemedText>
-        <ThemedText style={styles.date}>
-          {new Date(item.date).toLocaleDateString()}
+        <ThemedText style={styles.phoneNumber}>
+          {item.benefactorPhone} 📞
         </ThemedText>
       </View>
       
-      {item.description && (
-        <ThemedText style={styles.description}>{item.description}</ThemedText>
+      {/* Address */}
+      {item.benefactorAddress && (
+        <View style={styles.addressContainer}>
+          <ThemedText style={styles.address}>
+            {item.benefactorAddress} 📍
+          </ThemedText>
+        </View>
       )}
       
+      {/* Description */}
+      {item.description && (
+        <View style={styles.descriptionContainer}>
+          <ThemedText style={styles.description}>
+            {item.description} 📝
+          </ThemedText>
+        </View>
+      )}
+      
+      {/* Sync Status and Date */}
       <View style={styles.syncStatus}>
-        <View style={[
-          styles.statusDot,
-          item.syncStatus === 'synced' ? styles.statusSynced :
-          item.syncStatus === 'failed' ? styles.statusFailed :
-          styles.statusPending
-        ]} />
-        <ThemedText style={styles.statusText}>
-          {item.syncStatus === 'synced' ? 'Synced' :
-           item.syncStatus === 'failed' ? 'Sync Failed' :
-           'Pending Sync'}
+        <View style={styles.statusSection}>
+          <View style={[
+            styles.statusDot,
+            item.syncStatus === 'synced' ? styles.statusSynced :
+            item.syncStatus === 'failed' ? styles.statusFailed :
+            styles.statusPending
+          ]} />
+          <ThemedText style={styles.statusText}>
+            {item.syncStatus === 'synced' ? 'Synced' :
+             item.syncStatus === 'failed' ? 'Sync Failed' :
+             'Pending Sync'}
+          </ThemedText>
+        </View>
+        <ThemedText style={styles.date}>
+          {new Date(item.date).toLocaleDateString()}
         </ThemedText>
       </View>
     </ThemedView>
   );
 
   const renderPaginationControls = () => {
-    const totalPages = Math.ceil(allDonations.length / RECORDS_PER_PAGE);
-    const filteredCount = searchQuery.trim() 
-      ? allDonations.filter(d => 
-          d.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          d.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          d.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          d.currency.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          d.amount.toString().includes(searchQuery)
-        ).length 
-      : allDonations.length;
-    const filteredPages = Math.ceil(filteredCount / RECORDS_PER_PAGE);
+    // Since we're using database pagination, we can't know the total count easily
+    // We'll show current page and indicate if there are more pages
+    const hasPrevious = currentPage > 1;
+    const hasNext = hasMoreData;
 
     return (
       <ThemedView style={styles.paginationContainer}>
         <ThemedText style={styles.paginationInfo}>
-          Page {currentPage} of {filteredPages} • {filteredCount} records
+          صفحہ {currentPage} • {donations.length} ریکارڈز
+          {currentSearchTerm.trim() && ` • تلاش: "${currentSearchTerm}"`}
         </ThemedText>
         <View style={styles.paginationButtons}>
           <TouchableOpacity
-            style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
+            style={[styles.paginationButton, !hasPrevious && styles.paginationButtonDisabled]}
             onPress={loadPreviousPage}
-            disabled={currentPage === 1}
+            disabled={!hasPrevious}
           >
-            <ThemedText style={[styles.paginationButtonText, currentPage === 1 && styles.paginationButtonTextDisabled]}>
-              Previous
+            <ThemedText style={[styles.paginationButtonText, !hasPrevious && styles.paginationButtonTextDisabled]}>
+              پچھلا
             </ThemedText>
           </TouchableOpacity>
           
           <TouchableOpacity
-            style={[styles.paginationButton, !hasMoreData && styles.paginationButtonDisabled]}
+            style={[styles.paginationButton, !hasNext && styles.paginationButtonDisabled]}
             onPress={loadNextPage}
-            disabled={!hasMoreData}
+            disabled={!hasNext}
           >
-            <ThemedText style={[styles.paginationButtonText, !hasMoreData && styles.paginationButtonTextDisabled]}>
-              Next
+            <ThemedText style={[styles.paginationButtonText, !hasNext && styles.paginationButtonTextDisabled]}>
+              اگلا
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -183,7 +214,7 @@ export function DonationList() {
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
-        <ThemedText style={styles.loadingText}>Loading donations...</ThemedText>
+        <ThemedText style={styles.loadingText}>عطیات لوڈ ہو رہے ہیں...</ThemedText>
       </ThemedView>
     );
   }
@@ -192,48 +223,57 @@ export function DonationList() {
     <ThemedView style={styles.container}>
       {/* Statistics Header */}
       <ThemedView style={styles.statsContainer}>
-        <ThemedText type="title">Your Donations</ThemedText>
         <View style={styles.statsRow}>
           <ThemedView style={styles.statItem}>
             <ThemedText type="subtitle">{stats.totalDonations}</ThemedText>
-            <ThemedText style={styles.statLabel}>Total Donations</ThemedText>
+            <ThemedText style={styles.statLabel}>کل عطیات</ThemedText>
           </ThemedView>
           <ThemedView style={styles.statItem}>
-            <ThemedText type="subtitle">${stats.totalAmount.toFixed(2)}</ThemedText>
-            <ThemedText style={styles.statLabel}>Total Amount</ThemedText>
+            <ThemedText type="subtitle">PKR {stats.totalAmount?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</ThemedText>
+            <ThemedText style={styles.statLabel}>کل رقم</ThemedText>
           </ThemedView>
         </View>
       </ThemedView>
 
       {/* Search Bar */}
       <ThemedView style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search donations..."
-          value={searchQuery}
-          onChangeText={handleSearch}
-          placeholderTextColor="#999"
-        />
+        <View style={styles.searchInputContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="عطیات تلاش کریں..."
+            value={searchQuery}
+            onChangeText={handleSearch}
+            placeholderTextColor="#999"
+            onSubmitEditing={performSearch}
+            returnKeyType="search"
+          />
+        </View>
         {searchQuery.length > 0 && (
           <TouchableOpacity
             style={styles.clearButton}
-            onPress={() => handleSearch('')}
+            onPress={clearSearch}
           >
             <ThemedText style={styles.clearButtonText}>✕</ThemedText>
           </TouchableOpacity>
         )}
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={performSearch}
+        >
+          <ThemedText style={styles.searchButtonText}>تلاش</ThemedText>
+        </TouchableOpacity>
       </ThemedView>
 
       {/* Donations List */}
       {donations.length === 0 ? (
         <ThemedView style={styles.emptyContainer}>
           <ThemedText type="subtitle">
-            {searchQuery.trim() ? 'No matching donations' : 'No donations yet'}
+            {currentSearchTerm.trim() ? 'اس تلاش کے مطابق کو عطیات نہیں' : 'ابھی تک کوئی عطیات نہیں'}
           </ThemedText>
           <ThemedText style={styles.emptyText}>
-            {searchQuery.trim() 
-              ? 'Try adjusting your search terms.'
-              : 'Start by adding your first donation using the "Add Donation" button.'
+            {currentSearchTerm.trim() 
+              ? 'اپنی تلاش کی شرائط کو ایڈجسٹ کرنے کی کوشش کریں۔'
+              : '"عطیہ شامل کریں" بٹن کا استعمال کرتے ہوئے اپنا پہلا عطیہ شامل کرنے سے شروع کریں۔'
             }
           </ThemedText>
         </ThemedView>
@@ -302,33 +342,48 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  searchInput: {
+  searchInputContainer: {
     flex: 1,
-    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
     paddingHorizontal: 12,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
     fontSize: 16,
-    backgroundColor: '#fff',
-    marginTop: 16,
+    paddingVertical: 0,
   },
   clearButton: {
-    position: 'absolute',
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#ccc',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
   },
   clearButtonText: {
     fontSize: 12,
     color: '#fff',
     fontWeight: 'bold',
+  },
+  searchButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#007AFF',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
   },
   list: {
     flex: 1,
@@ -338,51 +393,137 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   donationItem: {
-    padding: 16,
+    padding: 20,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 16,
+    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   donationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
-  recipient: {
+  benefactorName: {
     flex: 1,
     marginRight: 8,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'right',
   },
   amount: {
-    fontSize: 18,
+    fontSize: 20,
+    fontWeight: '700',
     color: '#007AFF',
   },
-  donationDetails: {
+  contactInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addressContainer: {
+    marginBottom: 12,
+  },
+  phoneNumber: {
+    fontSize: 14,
+    color: '#555',
+    fontWeight: '500',
+    textAlign: 'right',
+  },
+  address: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'right',
+  },
+  donationDetails: {
+    marginBottom: 12,
+  },
+  categoryContainer: {
+    flex: 1,
+  },
+  categoryLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 2,
+    fontWeight: '500',
+    textAlign: 'right',
   },
   category: {
     fontSize: 14,
-    color: '#666',
-    textTransform: 'capitalize',
+    color: '#333',
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  dateContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  dateLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 2,
+    fontWeight: '500',
+    textAlign: 'right',
   },
   date: {
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '400',
+    textAlign: 'right',
+  },
+  recipientContainer: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  recipientLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  recipient: {
     fontSize: 14,
-    color: '#666',
+    color: '#333',
+    fontWeight: '600',
+  },
+  descriptionContainer: {
+    marginBottom: 12,
+  },
+  descriptionLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+    fontWeight: '500',
+    textAlign: 'right',
   },
   description: {
     fontSize: 14,
-    color: '#333',
-    marginBottom: 8,
+    color: '#555',
+    lineHeight: 20,
     fontStyle: 'italic',
+    textAlign: 'right',
   },
   syncStatus: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  statusSection: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,

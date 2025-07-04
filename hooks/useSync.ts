@@ -170,9 +170,9 @@ export function useSync() {
     }
   }, [updateSyncStatus]);
 
-  const getDonations = useCallback(async (limit = 50, offset = 0) => {
+  const getDonations = useCallback(async (limit = 50, offset = 0, searchQuery?: string) => {
     try {
-      return await databaseService.getDonations(limit, offset);
+      return await databaseService.getDonations(limit, offset, searchQuery);
     } catch (error) {
       console.error('Error getting donations:', error);
       return [];
