@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useExpenseSync } from '../hooks/useExpenseSync';
 import { useSync } from '../hooks/useSync';
+import { databaseService } from '../services/DatabaseService';
 import { HistoricalSyncService } from '../services/HistoricalSyncService';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
@@ -87,8 +88,14 @@ export default function SettingsScreen({ onLogout, onBack }: SettingsScreenProps
       await new Promise(resolve => setTimeout(resolve, 2000));
       await Promise.all([updateSyncStatus(), updateExpenseSyncStatus()]);
       
-      // Check if there are still pending items
-      if (syncStatus.pendingCount > 0 || expenseSyncStatus.pendingCount > 0) {
+      // Get fresh data directly from database to check actual pending counts
+      const [actualPendingDonations, actualPendingExpenses] = await Promise.all([
+        databaseService.getPendingSyncCount(),
+        databaseService.getPendingSyncExpenseCount(),
+      ]);
+      
+      // Check if there are still pending items using fresh database data
+      if (actualPendingDonations > 0 || actualPendingExpenses > 0) {
         Alert.alert(
           'ڈیٹا سنک ناکام',
           'کچھ ڈیٹا سنک نہیں ہو سکا۔ براہ کرم ایڈمن سے رابطہ کریں۔'
