@@ -5,9 +5,18 @@ class DatabaseService {
   private db: SQLite.SQLiteDatabase | null = null;
 
   async init(): Promise<void> {
-    this.db = await SQLite.openDatabaseAsync('hisaab-e-khair.db');
-    await this.migrateDatabase();
-    await this.createTables();
+    try {
+      console.log('Initializing SQLite database...');
+      this.db = await SQLite.openDatabaseAsync('hisaab-e-khair.db');
+      console.log('SQLite database opened successfully');
+      
+      await this.migrateDatabase();
+      await this.createTables();
+      console.log('Database initialization completed successfully');
+    } catch (error) {
+      console.error('Failed to initialize SQLite database:', error);
+      throw new Error(`Database initialization failed: ${error}`);
+    }
   }
 
   /**
@@ -83,8 +92,6 @@ class DatabaseService {
         sync_status TEXT NOT NULL DEFAULT 'pending'
       );
     `);
-
-    // Create sync queue table
 
     // Create indexes for better performance
     await this.db.execAsync(`
@@ -214,21 +221,21 @@ class DatabaseService {
   async getTotalDonations(): Promise<number> {
     if (!this.db) throw new Error('Database not initialized');
 
-    const result = await this.db.getFirstAsync('SELECT COUNT(*) as count FROM donations');
+    const result = await this.db.getFirstAsync('SELECT COUNT(*) as count FROM donations') as { count: number } | null;
     return result?.count || 0;
   }
 
   async getTotalAmount(): Promise<number> {
     if (!this.db) throw new Error('Database not initialized');
 
-    const result = await this.db.getFirstAsync('SELECT SUM(amount) as total FROM donations');
+    const result = await this.db.getFirstAsync('SELECT SUM(amount) as total FROM donations') as { total: number } | null;
     return result?.total || 0;
   }
 
   async getPendingSyncCount(): Promise<number> {
     if (!this.db) throw new Error('Database not initialized');
 
-    const result = await this.db.getFirstAsync('SELECT COUNT(*) as count FROM donations WHERE sync_status = "pending"');
+    const result = await this.db.getFirstAsync('SELECT COUNT(*) as count FROM donations WHERE sync_status = "pending"') as { count: number } | null;
     return result?.count || 0;
   }
 
@@ -313,19 +320,19 @@ class DatabaseService {
 
   async getTotalExpenses(): Promise<number> {
     if (!this.db) throw new Error('Database not initialized');
-    const result = await this.db.getFirstAsync('SELECT COUNT(*) as count FROM expenses');
+    const result = await this.db.getFirstAsync('SELECT COUNT(*) as count FROM expenses') as { count: number } | null;
     return result?.count || 0;
   }
 
   async getTotalExpenseAmount(): Promise<number> {
     if (!this.db) throw new Error('Database not initialized');
-    const result = await this.db.getFirstAsync('SELECT SUM(amount) as total FROM expenses');
+    const result = await this.db.getFirstAsync('SELECT SUM(amount) as total FROM expenses') as { total: number } | null;
     return result?.total || 0;
   }
 
   async getPendingSyncExpenseCount(): Promise<number> {
     if (!this.db) throw new Error('Database not initialized');
-    const result = await this.db.getFirstAsync('SELECT COUNT(*) as count FROM expenses WHERE sync_status = "pending"');
+    const result = await this.db.getFirstAsync('SELECT COUNT(*) as count FROM expenses WHERE sync_status = "pending"') as { count: number } | null;
     return result?.count || 0;
   }
 

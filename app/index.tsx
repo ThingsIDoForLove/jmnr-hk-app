@@ -10,7 +10,7 @@ import { useSync } from '@/hooks/useSync';
 import { databaseService } from '@/services/DatabaseService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, BackHandler, Platform, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface HomeScreenProps {
   onLogout: () => void;
@@ -28,7 +28,34 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
   const [balance, setBalance] = useState(0);
 
   useEffect(() => {
-    databaseService.init().then(() => setDbReady(true));
+    databaseService.init()
+      .then(() => {
+        console.log('Database initialized successfully');
+        setDbReady(true);
+      })
+      .catch((error) => {
+        console.error('Failed to initialize database:', error);
+        Alert.alert(
+          'Database Error',
+          'Failed to initialize local database. The app cannot function without a database. Please restart the app or contact support.',
+          [
+            { 
+              text: 'Exit App', 
+              onPress: () => {
+                // Force close the app
+                if (Platform.OS === 'ios') {
+                  // On iOS, we can't force close, but we can show the error
+                  console.log('App should be restarted manually');
+                } else {
+                  // On Android, we can try to exit
+                  BackHandler.exitApp();
+                }
+              },
+              style: 'destructive'
+            }
+          ]
+        );
+      });
   }, []);
 
   useEffect(() => {
@@ -172,7 +199,12 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
   if (!dbReady) {
     return (
       <ThemedView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ThemedText>لوڈ ہو رہا ہے...</ThemedText>
+        <ThemedText style={{ fontSize: 18, textAlign: 'center', marginBottom: 20 }}>
+          ڈیٹابیس شروع ہو رہا ہے...
+        </ThemedText>
+        <ThemedText style={{ fontSize: 14, textAlign: 'center', color: '#666' }}>
+          براہ کرم انتظار کریں
+        </ThemedText>
       </ThemedView>
     );
   }
