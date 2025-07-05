@@ -165,24 +165,29 @@ export function DonationList() {
         </View>
       )}
       
-      {/* Sync Status and Date */}
-      <View style={styles.syncStatus}>
-        <View style={styles.statusSection}>
-          <View style={[
-            styles.statusDot,
-            item.syncStatus === 'synced' ? styles.statusSynced :
-            item.syncStatus === 'failed' ? styles.statusFailed :
-            styles.statusPending
-          ]} />
-          <ThemedText style={styles.statusText}>
-            {item.syncStatus === 'synced' ? 'Synced' :
-             item.syncStatus === 'failed' ? 'Sync Failed' :
-             'Pending Sync'}
-          </ThemedText>
-        </View>
-        <ThemedText style={styles.date}>
-          {new Date(item.date).toLocaleDateString()}
+      {/* Footer with recipient, date, and sync status */}
+      <View style={styles.donationFooter}>
+        <ThemedText style={styles.recipient}>
+          {item.recipient}
         </ThemedText>
+        <View style={styles.footerRight}>
+          <ThemedText style={styles.date}>
+            {new Date(item.date).toLocaleDateString()}
+          </ThemedText>
+          <View style={styles.statusSection}>
+            <View style={[
+              styles.statusDot,
+              item.syncStatus === 'synced' ? styles.statusSynced :
+              item.syncStatus === 'failed' ? styles.statusFailed :
+              styles.statusPending
+            ]} />
+            <ThemedText style={styles.statusText}>
+              {item.syncStatus === 'synced' ? 'Synced' :
+               item.syncStatus === 'failed' ? 'Failed' :
+               'Pending'}
+            </ThemedText>
+          </View>
+        </View>
       </View>
     </ThemedView>
   );
@@ -195,30 +200,32 @@ export function DonationList() {
 
     return (
       <ThemedView style={styles.paginationContainer}>
-        <ThemedText style={styles.paginationInfo}>
-          صفحہ {currentPage} • {donations.length} ریکارڈز
-          {currentSearchTerm.trim() && ` • تلاش: "${currentSearchTerm}"`}
-        </ThemedText>
-        <View style={styles.paginationButtons}>
-          <TouchableOpacity
-            style={[styles.paginationButton, !hasPrevious && styles.paginationButtonDisabled]}
-            onPress={loadPreviousPage}
-            disabled={!hasPrevious}
-          >
-            <ThemedText style={[styles.paginationButtonText, !hasPrevious && styles.paginationButtonTextDisabled]}>
-              پچھلا
-            </ThemedText>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.paginationButton, !hasNext && styles.paginationButtonDisabled]}
-            onPress={loadNextPage}
-            disabled={!hasNext}
-          >
-            <ThemedText style={[styles.paginationButtonText, !hasNext && styles.paginationButtonTextDisabled]}>
-              اگلا
-            </ThemedText>
-          </TouchableOpacity>
+        <View style={styles.paginationRow}>
+          <ThemedText style={styles.paginationInfo}>
+            صفحہ {currentPage} • {donations.length} ریکارڈز
+            {currentSearchTerm.trim() && ` • تلاش: "${currentSearchTerm}"`}
+          </ThemedText>
+          <View style={styles.paginationButtons}>
+            <TouchableOpacity
+              style={[styles.paginationButton, !hasPrevious && styles.paginationButtonDisabled]}
+              onPress={loadPreviousPage}
+              disabled={!hasPrevious}
+            >
+              <ThemedText style={[styles.paginationButtonText, !hasPrevious && styles.paginationButtonTextDisabled]}>
+                ←
+              </ThemedText>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.paginationButton, !hasNext && styles.paginationButtonDisabled]}
+              onPress={loadNextPage}
+              disabled={!hasNext}
+            >
+              <ThemedText style={[styles.paginationButtonText, !hasNext && styles.paginationButtonTextDisabled]}>
+                →
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
       </ThemedView>
     );
@@ -332,24 +339,24 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   statsContainer: {
-    padding: 20,
-    gap: 16,
+    padding: 12,
+    gap: 8,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 20,
+    gap: 12,
   },
   statItem: {
     flex: 1,
-    padding: 16,
+    padding: 8,
     backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+    borderRadius: 4,
     alignItems: 'center',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 9,
     color: '#666',
-    marginTop: 4,
+    marginTop: 1,
   },
   searchContainer: {
     paddingHorizontal: 20,
@@ -555,6 +562,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  recipient: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  donationFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  footerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -573,30 +600,33 @@ const styles = StyleSheet.create({
     borderTopColor: '#e0e0e0',
     backgroundColor: '#fff',
   },
+  paginationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   paginationInfo: {
-    textAlign: 'center',
     fontSize: 14,
     color: '#666',
-    marginBottom: 12,
   },
   paginationButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
   },
   paginationButton: {
-    flex: 1,
-    padding: 12,
+    width: 40,
+    height: 40,
     backgroundColor: '#007AFF',
-    borderRadius: 8,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   paginationButtonDisabled: {
     backgroundColor: '#ccc',
   },
   paginationButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '500',
   },
   paginationButtonTextDisabled: {

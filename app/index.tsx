@@ -2,6 +2,7 @@ import { DonationForm } from '@/components/DonationForm';
 import { DonationList } from '@/components/DonationList';
 import { ExpenseForm } from '@/components/ExpenseForm';
 import { ExpenseList } from '@/components/ExpenseList';
+import SettingsScreen from '@/components/SettingsScreen';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { useExpenseSync } from '@/hooks/useExpenseSync';
@@ -11,9 +12,13 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
-export default function HomeScreen() {
+interface HomeScreenProps {
+  onLogout: () => void;
+}
+
+export default function HomeScreen({ onLogout }: HomeScreenProps) {
   const [dbReady, setDbReady] = useState(false);
-  const [currentView, setCurrentView] = useState<'main' | 'list' | 'form' | 'expense-list' | 'expense-form'>('main');
+  const [currentView, setCurrentView] = useState<'main' | 'list' | 'form' | 'expense-list' | 'expense-form' | 'settings' | 'reports'>('main');
   const { getStatistics, manualSync, syncStatus } = useSync();
   const [stats, setStats] = useState({ totalDonations: 0, totalAmount: 0, pendingCount: 0 });
 
@@ -65,7 +70,7 @@ export default function HomeScreen() {
             >
               <Ionicons name={syncStatus?.isSyncing ? 'sync' : 'cloud-upload-outline'} size={20} color={syncStatus?.isSyncing ? '#007AFF' : '#333'} />
               <ThemedText style={styles.syncButtonTextCompact}>
-                {syncStatus?.isSyncing ? 'ہم آہنگ...' : `(${stats.pendingCount})`}
+                {syncStatus?.isSyncing ? 'ڈیٹا سنک...' : `(${stats.pendingCount})`}
               </ThemedText>
             </TouchableOpacity>
           </ThemedView>
@@ -85,7 +90,7 @@ export default function HomeScreen() {
             >
               <Ionicons name={expenseSyncStatus?.isSyncing ? 'sync' : 'cloud-upload-outline'} size={20} color={expenseSyncStatus?.isSyncing ? '#F44336' : '#333'} />
               <ThemedText style={styles.syncButtonTextCompact}>
-                {expenseSyncStatus?.isSyncing ? 'ہم آہنگ...' : `(${expenseStats.pendingCount})`}
+                {expenseSyncStatus?.isSyncing ? 'ڈیٹا سنک...' : `(${expenseStats.pendingCount})`}
               </ThemedText>
             </TouchableOpacity>
           </ThemedView>
@@ -98,26 +103,53 @@ export default function HomeScreen() {
         </ThemedView>
 
         <ThemedView style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => setCurrentView('list')}
-          >
-            <ThemedText style={styles.buttonText}>📋 تمام عطیات دیکھیں</ThemedText>
-          </TouchableOpacity>
+          <ThemedView style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.button, styles.halfButton]}
+              onPress={() => setCurrentView('list')}
+            >
+              <ThemedText style={styles.buttonText}>📋 تمام عطیات</ThemedText>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.addButton]}
-            onPress={() => setCurrentView('form')}
-          >
-            <ThemedText style={styles.buttonText}>➕ نیا عطیہ شامل کریں</ThemedText>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.halfButton, styles.addButton]}
+              onPress={() => setCurrentView('form')}
+            >
+              <ThemedText style={styles.buttonText}>➕ نیا عطیہ</ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
 
-          <TouchableOpacity
-            style={[styles.button, styles.expenseButton]}
-            onPress={() => setCurrentView('expense-list')}
-          >
-            <ThemedText style={styles.buttonText}>💸 اخراجات کا حساب</ThemedText>
-          </TouchableOpacity>
+          <ThemedView style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.button, styles.halfButton, styles.addExpenseButton]}
+              onPress={() => setCurrentView('expense-form')}
+            >
+              <ThemedText style={styles.buttonText}>➕ نیا خرچ</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, styles.halfButton, styles.expenseButton]}
+              onPress={() => setCurrentView('expense-list')}
+            >
+              <ThemedText style={styles.buttonText}>💸 تمام اخراجات</ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
+
+          <ThemedView style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.button, styles.halfButton, styles.settingsButton]}
+              onPress={() => setCurrentView('settings')}
+            >
+              <ThemedText style={styles.buttonText}>⚙️ ترتیبات</ThemedText>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, styles.halfButton, styles.reportsButton]}
+              onPress={() => setCurrentView('reports')}
+            >
+              <ThemedText style={styles.buttonText}>📊 رپورٹ</ThemedText>
+            </TouchableOpacity>
+          </ThemedView>
         </ThemedView>
       </ThemedView>
     </ThemedView>
@@ -168,12 +200,6 @@ export default function HomeScreen() {
       <ThemedView style={styles.fullContainer}>
         {renderHeader('تمام اخراجات')}
         <ExpenseList />
-        <TouchableOpacity
-          style={[styles.button, styles.addButton, { margin: 20 }]}
-          onPress={() => setCurrentView('expense-form')}
-        >
-          <ThemedText style={styles.buttonText}>➕ نیا خرچ شامل کریں</ThemedText>
-        </TouchableOpacity>
       </ThemedView>
     );
   }
@@ -183,6 +209,35 @@ export default function HomeScreen() {
       <ThemedView style={styles.fullContainer}>
         {renderHeader('نیا خرچ شامل کریں')}
         <ExpenseForm />
+      </ThemedView>
+    );
+  }
+
+  const handleLogout = () => {
+    // Call the parent's logout function
+    onLogout();
+  };
+
+  if (currentView === 'settings') {
+    return (
+      <ThemedView style={styles.fullContainer}>
+        <SettingsScreen 
+          onLogout={handleLogout}
+          onBack={() => setCurrentView('main')}
+        />
+      </ThemedView>
+    );
+  }
+
+  if (currentView === 'reports') {
+    return (
+      <ThemedView style={styles.fullContainer}>
+        {renderHeader('رپورٹ')}
+        <ThemedView style={styles.container}>
+          <ThemedText style={{ textAlign: 'center', marginTop: 50 }}>
+            رپورٹ فیچر جلد آ رہا ہے...
+          </ThemedText>
+        </ThemedView>
       </ThemedView>
     );
   }
@@ -223,15 +278,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   buttonContainer: {
-    gap: 20,
+    gap: 12,
     marginBottom: 40,
+    width: '100%',
   },
   button: {
     backgroundColor: '#f5f5f5',
-    padding: 24,
-    borderRadius: 16,
+    padding: 20,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 60,
   },
   addButton: {
     backgroundColor: '#007AFF',
@@ -241,12 +300,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#F44336',
     borderColor: '#F44336',
   },
+  addExpenseButton: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
   buttonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
     textAlign: 'center',
-    lineHeight: 40
+    lineHeight: 20,
   },
   buttonSubtext: {
     fontSize: 14,
@@ -258,8 +320,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'stretch',
     backgroundColor: '#f7fafd',
-    borderRadius: 16,
-    marginBottom: 24,
+    borderRadius: 12,
+    marginBottom: 20,
     marginTop: 8,
     borderWidth: 1,
     borderColor: '#e0e0e0',
@@ -269,8 +331,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
     backgroundColor: '#f7fafd',
   },
   statColumnBorder: {
@@ -278,24 +340,24 @@ const styles = StyleSheet.create({
     borderRightColor: '#e0e0e0',
   },
   statsTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 2,
     textAlign: 'center',
     color: '#1976D2',
-    lineHeight: 30,
+    lineHeight: 20,
   },
   statsText: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     color: '#222',
-    marginBottom: 2,
+    marginBottom: 1,
     textAlign: 'center',
   },
   statsSubText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
-    marginBottom: 6,
+    marginBottom: 4,
     textAlign: 'center',
   },
   syncButtonCompact: {
@@ -333,5 +395,51 @@ const styles = StyleSheet.create({
   navTitle: {
     flex: 1,
     textAlign: "center"
+  },
+  addButtonHeader: {
+    position: 'absolute',
+    right: 20,
+    backgroundColor: '#007AFF',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  addButtonHeaderText: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  settingsButtonHeader: {
+    position: 'absolute',
+    right: 20,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 10,
+  },
+  halfButton: {
+    flex: 1,
+  },
+  settingsButton: {
+    backgroundColor: '#f8f9fa',
+    borderColor: '#e0e0e0',
+  },
+  reportsButton: {
+    backgroundColor: '#e0e0e0',
+    borderColor: '#e0e0e0',
   },
 }); 

@@ -44,7 +44,6 @@ class DatabaseService {
     // Drop tables if they exist , remove this after first version
     // await this.db.execAsync('DROP TABLE IF EXISTS donations');
     // await this.db.execAsync('DROP TABLE IF EXISTS expenses');
-    await this.db.execAsync('DROP TABLE IF EXISTS sync_queue');
 
     // Create donations table
     await this.db.execAsync(`
@@ -257,14 +256,34 @@ class DatabaseService {
     ]);
   }
 
-  async getExpenses(limit = 50, offset = 0): Promise<ExpenseRecord[]> {
+  async getExpenses(limit = 50, offset = 0, searchQuery?: string): Promise<ExpenseRecord[]> {
     if (!this.db) throw new Error('Database not initialized');
-    const query = `
-      SELECT * FROM expenses 
-      ORDER BY date DESC 
-      LIMIT ? OFFSET ?
-    `;
-    const result = await this.db.getAllAsync(query, [limit, offset]);
+
+    let query: string;
+    let params: any[];
+
+    if (searchQuery && searchQuery.trim()) {
+      const searchTerm = `%${searchQuery.trim()}%`;
+      query = `
+        SELECT * FROM expenses 
+        WHERE payee LIKE ? 
+           OR category LIKE ? 
+           OR description LIKE ? 
+           OR amount LIKE ?
+        ORDER BY date DESC 
+        LIMIT ? OFFSET ?
+      `;
+      params = [searchTerm, searchTerm, searchTerm, searchTerm, limit, offset];
+    } else {
+      query = `
+        SELECT * FROM expenses 
+        ORDER BY date DESC 
+        LIMIT ? OFFSET ?
+      `;
+      params = [limit, offset];
+    }
+
+    const result = await this.db.getAllAsync(query, params);
     return result.map(this.mapExpenseFromDB);
   }
 
@@ -324,6 +343,198 @@ class DatabaseService {
       updatedAt: row.updated_at,
       syncStatus: row.sync_status,
     };
+  }
+
+  // Bulk operations for better performance
+  async bulkSaveDonations(donations: DonationRecord[]): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    if (donations.length === 0) return;
+
+    // Start transaction for better performance
+    await this.db.execAsync('BEGIN TRANSACTION');
+
+    try {
+      const query = `
+        INSERT OR REPLACE INTO donations (
+          id, amount, currency, benefactor_name, benefactor_phone, benefactor_address, recipient, category, description, date,
+          location_lat, location_lng, receipt_image,
+          created_at, updated_at, sync_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      // Prepare statement for better performance
+      const stmt = await this.db.prepareAsync(query);
+
+      for (const donation of donations) {
+        await stmt.executeAsync([
+          donation.id,
+          donation.amount,
+          donation.currency,
+          donation.benefactorName,
+          donation.benefactorPhone,
+          donation.benefactorAddress || null,
+          donation.recipient,
+          donation.category,
+          donation.description || null,
+          donation.date,
+          donation.location?.latitude || null,
+          donation.location?.longitude || null,
+          donation.receiptImage || null,
+          donation.createdAt,
+          donation.updatedAt,
+          donation.syncStatus,
+        ]);
+      }
+
+      await stmt.finalizeAsync();
+      await this.db.execAsync('COMMIT');
+    } catch (error) {
+      await this.db.execAsync('ROLLBACK');
+      throw error;
+    }
+  }
+
+  async bulkSaveExpenses(expenses: ExpenseRecord[]): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    if (expenses.length === 0) return;
+
+    // Start transaction for better performance
+    await this.db.execAsync('BEGIN TRANSACTION');
+
+    try {
+      const query = `
+        INSERT OR REPLACE INTO expenses (
+          id, amount, currency, payee, category, description, date, is_personal,
+          created_at, updated_at, sync_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      // Prepare statement for better performance
+      const stmt = await this.db.prepareAsync(query);
+
+      for (const expense of expenses) {
+        await stmt.executeAsync([
+          expense.id,
+          expense.amount,
+          expense.currency,
+          expense.payee,
+          expense.category,
+          expense.description || null,
+          expense.date,
+          expense.isPersonal ? 1 : 0,
+          expense.createdAt,
+          expense.updatedAt,
+          expense.syncStatus,
+        ]);
+      }
+
+      await stmt.finalizeAsync();
+      await this.db.execAsync('COMMIT');
+    } catch (error) {
+      await this.db.execAsync('ROLLBACK');
+      throw error;
+    }
+  }
+
+  // Optimized bulk save with chunking for very large datasets
+  async bulkSaveDonationsChunked(donations: DonationRecord[], chunkSize = 100): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    if (donations.length === 0) return;
+
+    // Start a single transaction for all chunks
+    await this.db.execAsync('BEGIN TRANSACTION');
+
+    try {
+      const query = `
+        INSERT OR REPLACE INTO donations (
+          id, amount, currency, benefactor_name, benefactor_phone, benefactor_address, recipient, category, description, date,
+          location_lat, location_lng, receipt_image,
+          created_at, updated_at, sync_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      // Prepare statement for better performance
+      const stmt = await this.db.prepareAsync(query);
+
+      // Process in chunks to avoid memory issues
+      for (let i = 0; i < donations.length; i += chunkSize) {
+        const chunk = donations.slice(i, i + chunkSize);
+        
+        for (const donation of chunk) {
+          await stmt.executeAsync([
+            donation.id,
+            donation.amount,
+            donation.currency,
+            donation.benefactorName,
+            donation.benefactorPhone,
+            donation.benefactorAddress || null,
+            donation.recipient,
+            donation.category,
+            donation.description || null,
+            donation.date,
+            donation.location?.latitude || null,
+            donation.location?.longitude || null,
+            donation.receiptImage || null,
+            donation.createdAt,
+            donation.updatedAt,
+            donation.syncStatus,
+          ]);
+        }
+      }
+
+      await stmt.finalizeAsync();
+      await this.db.execAsync('COMMIT');
+    } catch (error) {
+      await this.db.execAsync('ROLLBACK');
+      throw error;
+    }
+  }
+
+  async bulkSaveExpensesChunked(expenses: ExpenseRecord[], chunkSize = 100): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+    if (expenses.length === 0) return;
+
+    // Start a single transaction for all chunks
+    await this.db.execAsync('BEGIN TRANSACTION');
+
+    try {
+      const query = `
+        INSERT OR REPLACE INTO expenses (
+          id, amount, currency, payee, category, description, date, is_personal,
+          created_at, updated_at, sync_status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      // Prepare statement for better performance
+      const stmt = await this.db.prepareAsync(query);
+
+      // Process in chunks to avoid memory issues
+      for (let i = 0; i < expenses.length; i += chunkSize) {
+        const chunk = expenses.slice(i, i + chunkSize);
+        
+        for (const expense of chunk) {
+          await stmt.executeAsync([
+            expense.id,
+            expense.amount,
+            expense.currency,
+            expense.payee,
+            expense.category,
+            expense.description || null,
+            expense.date,
+            expense.isPersonal ? 1 : 0,
+            expense.createdAt,
+            expense.updatedAt,
+            expense.syncStatus,
+          ]);
+        }
+      }
+
+      await stmt.finalizeAsync();
+      await this.db.execAsync('COMMIT');
+    } catch (error) {
+      await this.db.execAsync('ROLLBACK');
+      throw error;
+    }
   }
 }
 

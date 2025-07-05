@@ -1,6 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
@@ -8,6 +7,7 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import LoginScreen from '../components/LoginScreen';
+import HomeScreen from './index';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -26,6 +26,10 @@ export default function RootLayout() {
     checkLogin();
   }, []);
 
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+  };
+
   if (!loaded) {
     // Async font loading only occurs in development.
     return null;
@@ -37,10 +41,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+      <HomeScreen onLogout={handleLogout} />
       <StatusBar style="auto" />
     </ThemeProvider>
   );

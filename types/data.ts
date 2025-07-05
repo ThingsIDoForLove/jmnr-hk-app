@@ -40,7 +40,7 @@ export interface ExpenseRecord {
   amount: number;
   currency: string;
   payee: string;
-  category: 'food' | 'transport' | 'utilities' | 'health' | 'education' | 'other';
+  category: 'office_supplies' | 'utilities' | 'rent' | 'maintenance' | 'transportation' | 'meals' | 'events' | 'marketing' | 'equipment' | 'services' | 'other';
   description?: string;
   date: string; // ISO string
   isPersonal: boolean;

@@ -1,13 +1,13 @@
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useExpenseSync } from '../hooks/useExpenseSync';
 import { ThemedText } from './ThemedText';
@@ -17,18 +17,23 @@ interface ExpenseFormData {
   amount: string;
   currency: string;
   payee?: string;
-  category: 'food' | 'transport' | 'utilities' | 'health' | 'education' | 'other';
+  category: 'office_supplies' | 'utilities' | 'rent' | 'maintenance' | 'transportation' | 'meals' | 'events' | 'marketing' | 'equipment' | 'services' | 'other';
   description: string;
   isPersonal: boolean;
 }
 
 const CURRENCIES = ['PKR'];
 const CATEGORIES = [
-  { label: 'خوراک', value: 'food' },
-  { label: 'سفر', value: 'transport' },
-  { label: 'یوٹیلیٹیز', value: 'utilities' },
-  { label: 'صحت', value: 'health' },
-  { label: 'تعلیم', value: 'education' },
+  { label: 'دفتری سامان', value: 'office_supplies' },
+  { label: 'بلز', value: 'utilities' },
+  { label: 'کرایہ', value: 'rent' },
+  { label: 'مرمت', value: 'maintenance' },
+  { label: 'نقل و حمل', value: 'transportation' },
+  { label: 'کھانا', value: 'meals' },
+  { label: 'تقریبات', value: 'events' },
+  { label: 'تشہیر', value: 'marketing' },
+  { label: 'آلات', value: 'equipment' },
+  { label: 'خدمات', value: 'services' },
   { label: 'دیگر', value: 'other' },
 ];
 
@@ -39,8 +44,8 @@ export function ExpenseForm() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [formData, setFormData] = useState<ExpenseFormData>({
     amount: '',
-    currency: 'USD',
-    category: 'food',
+    currency: 'PKR',
+    category: 'office_supplies',
     description: '',
     isPersonal: false,
   });
@@ -79,15 +84,15 @@ export function ExpenseForm() {
 
       Alert.alert(
         'Success',
-        'Expense saved successfully! It will be synced when internet is available.',
+        'Expense saved successfully.',
         [
           {
             text: 'OK',
             onPress: () => {
               setFormData({
                 amount: '',
-                currency: 'USD',
-                category: 'food',
+                currency: 'PKR',
+                category: 'office_supplies',
                 description: '',
                 isPersonal: false,
               });
@@ -104,10 +109,6 @@ export function ExpenseForm() {
 
   return (
     <ScrollView style={styles.container}>
-      <ThemedView style={styles.header}>
-        <ThemedText type="title" style={{textAlign: 'right'}}>خرچ درج کریں</ThemedText>
-      </ThemedView>
-
       <ThemedView style={styles.form}>
         {/* Amount */}
         <ThemedView style={styles.inputGroup}>
@@ -159,7 +160,7 @@ export function ExpenseForm() {
 
         {/* Category */}
         <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle" style={{textAlign: 'right'}}>زمرہ</ThemedText>
+          <ThemedText type="subtitle" style={{textAlign: 'right'}}>قسم</ThemedText>
           <TouchableOpacity
             style={styles.categoryButton}
             onPress={() => setShowCategoryPicker(!showCategoryPicker)}
@@ -197,7 +198,7 @@ export function ExpenseForm() {
 
         {/* Description */}
         <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle" style={{textAlign: 'right'}}>تفصیل (اختیاری)</ThemedText>
+          <ThemedText type="subtitle" style={{textAlign: 'right'}}>تفصیل</ThemedText>
           <TextInput
             style={[styles.textInput, styles.textArea]}
             value={formData.description}
@@ -280,6 +281,7 @@ const styles = StyleSheet.create({
   },
   categoryButtonText: {
     fontSize: 16,
+    textAlign: 'right',
   },
   pickerContainer: {
     backgroundColor: '#fff',
@@ -294,10 +296,11 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   pickerItemSelected: {
-    backgroundColor: '#F44336',
+    backgroundColor: '#007AFF',
   },
   pickerItemText: {
     fontSize: 16,
+    textAlign: 'right',
   },
   pickerItemTextSelected: {
     color: '#fff',

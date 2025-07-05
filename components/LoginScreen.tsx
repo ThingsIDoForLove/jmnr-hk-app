@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Button, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { API_BASE_URL } from '../constants/Config';
+import { HistoricalSyncService } from '../services/HistoricalSyncService';
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -44,6 +45,17 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       const { username: apiUsername, signingKey } = await res.json();
       await SecureStore.setItemAsync('username', apiUsername);
       await SecureStore.setItemAsync('signingKey', signingKey);
+      
+      // Sync historical data after successful login
+      try {
+        console.log('Starting historical data sync after login...');
+        const result = await HistoricalSyncService.syncAllHistoricalData();
+        console.log('Historical data sync completed:', result);
+      } catch (syncError) {
+        console.error('Historical sync failed, but continuing with login:', syncError);
+        // Don't block login if sync fails
+      }
+      
       onLoginSuccess();
     } catch (e) {
       Alert.alert('اکٹیویشن ناکام', 'نیٹ ورک یا سرور کی خرابی');

@@ -16,26 +16,69 @@ import { ThemedView } from './ThemedView';
 export function ExpenseList() {
   const { getExpenses, getStatistics } = useExpenseSync();
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
-  const [allExpenses, setAllExpenses] = useState<ExpenseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ totalExpenses: 0, totalAmount: 0 });
   
   // Search and pagination state
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentSearchTerm, setCurrentSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreData, setHasMoreData] = useState(true);
   const RECORDS_PER_PAGE = 30;
 
-  const loadExpenses = async () => {
+  const getCategoryInUrdu = (category: string) => {
+    const categoryMap: { [key: string]: string } = {
+      'office_supplies': 'دفتری سامان',
+      'utilities': 'بلز',
+      'rent': 'کرایہ',
+      'maintenance': 'مرمت',
+      'transportation': 'نقل و حمل',
+      'meals': 'کھانا',
+      'events': 'تقریبات',
+      'marketing': 'تشہیر',
+      'equipment': 'آلات',
+      'services': 'خدمات',
+      'other': 'دیگر'
+    };
+    return categoryMap[category] || category;
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const iconMap: { [key: string]: string } = {
+      'office_supplies': '📋',
+      'utilities': '💡',
+      'rent': '🏢',
+      'maintenance': '🔧',
+      'transportation': '🚗',
+      'meals': '🍽️',
+      'events': '🎉',
+      'marketing': '📢',
+      'equipment': '🖥️',
+      'services': '🤝',
+      'other': '📋'
+    };
+    return iconMap[category] || '📋';
+  };
+
+  const loadExpenses = async (searchQuery: string = '', page: number = 1) => {
     try {
+      setLoading(true);
+      
+      // Get expenses with search and pagination from database
       const [expenseData, statsData] = await Promise.all([
-        getExpenses(1000, 0), // Get all expenses for search
+        getExpenses(RECORDS_PER_PAGE, (page - 1) * RECORDS_PER_PAGE, searchQuery),
         getStatistics(),
       ]);
-      setAllExpenses(expenseData);
+      
+      setExpenses(expenseData);
       setStats(statsData);
-      applySearchAndPagination(expenseData, searchQuery, 1);
+      setCurrentPage(page);
+      
+      // Check if there are more records
+      const hasMore = expenseData.length === RECORDS_PER_PAGE;
+      setHasMoreData(hasMore);
+      
     } catch (error) {
       console.error('Error loading expenses:', error);
     } finally {
@@ -44,136 +87,129 @@ export function ExpenseList() {
     }
   };
 
-  const applySearchAndPagination = (data: ExpenseRecord[], query: string, page: number) => {
-    // Filter by search query
-    let filteredData = data;
-    if (query.trim()) {
-      const lowerQuery = query.toLowerCase();
-      filteredData = data.filter(expense => 
-        expense.payee.toLowerCase().includes(lowerQuery) ||
-        expense.category.toLowerCase().includes(lowerQuery) ||
-        expense.description?.toLowerCase().includes(lowerQuery) ||
-        expense.currency.toLowerCase().includes(lowerQuery) ||
-        expense.amount.toString().includes(lowerQuery)
-      );
-    }
-
-    // Apply pagination
-    const startIndex = (page - 1) * RECORDS_PER_PAGE;
-    const endIndex = startIndex + RECORDS_PER_PAGE;
-    const paginatedData = filteredData.slice(startIndex, endIndex);
-    
-    setExpenses(paginatedData);
-    setHasMoreData(endIndex < filteredData.length);
-    setCurrentPage(page);
-  };
-
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    applySearchAndPagination(allExpenses, query, 1);
+  };
+
+  const performSearch = () => {
+    setCurrentSearchTerm(searchQuery);
+    loadExpenses(searchQuery, 1);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setCurrentSearchTerm('');
+    loadExpenses('', 1);
   };
 
   const loadNextPage = () => {
     if (hasMoreData) {
       const nextPage = currentPage + 1;
-      applySearchAndPagination(allExpenses, searchQuery, nextPage);
+      loadExpenses(currentSearchTerm, nextPage);
     }
   };
 
   const loadPreviousPage = () => {
     if (currentPage > 1) {
       const prevPage = currentPage - 1;
-      applySearchAndPagination(allExpenses, searchQuery, prevPage);
+      loadExpenses(currentSearchTerm, prevPage);
     }
   };
 
   useEffect(() => {
-    loadExpenses();
+    loadExpenses('', 1);
   }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadExpenses();
+    loadExpenses(currentSearchTerm, 1);
   };
 
   const renderExpenseItem = ({ item }: { item: ExpenseRecord }) => (
     <ThemedView style={styles.expenseItem}>
+      {/* Header with category and amount */}
       <View style={styles.expenseHeader}>
-        <ThemedText type="subtitle" style={styles.payee}>
-          {item.isPersonal ? 'Personal' : item.payee}
-        </ThemedText>
+        <View style={styles.categoryContainer}>
+          <ThemedText style={styles.categoryText}>
+            {getCategoryInUrdu(item.category)}
+          </ThemedText>
+          <ThemedText style={styles.categoryIcon}>
+            {getCategoryIcon(item.category)}
+          </ThemedText>
+        </View>
         <ThemedText type="defaultSemiBold" style={styles.amount}>
-          {item.currency} {item.amount.toFixed(2)}
+          PKR {item.amount.toFixed(2)}
         </ThemedText>
       </View>
       
-      <View style={styles.expenseDetails}>
-        <ThemedText style={styles.category}>
-          {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
-        </ThemedText>
-        <ThemedText style={styles.date}>
-          {new Date(item.date).toLocaleDateString()}
-        </ThemedText>
-      </View>
-      
+      {/* Body - Description only */}
       {item.description && (
-        <ThemedText style={styles.description}>{item.description}</ThemedText>
+        <View style={styles.descriptionContainer}>
+          <ThemedText style={styles.descriptionText}>
+            {item.description}
+          </ThemedText>
+        </View>
       )}
       
-      <View style={styles.syncStatus}>
-        <View style={[
-          styles.statusDot,
-          item.syncStatus === 'synced' ? styles.statusSynced :
-          item.syncStatus === 'failed' ? styles.statusFailed :
-          styles.statusPending
-        ]} />
-        <ThemedText style={styles.statusText}>
-          {item.syncStatus === 'synced' ? 'Synced' :
-           item.syncStatus === 'failed' ? 'Sync Failed' :
-           'Pending Sync'}
+      {/* Footer with payee, date, and sync status */}
+      <View style={styles.expenseFooter}>
+        <ThemedText style={styles.payee}>
+          {item.isPersonal ? 'ذاتی' : item.payee}
         </ThemedText>
+        <View style={styles.footerRight}>
+          <ThemedText style={styles.date}>
+            {new Date(item.date).toLocaleDateString()}
+          </ThemedText>
+          <View style={styles.statusSection}>
+            <View style={[
+              styles.statusDot,
+              item.syncStatus === 'synced' ? styles.statusSynced :
+              item.syncStatus === 'failed' ? styles.statusFailed :
+              styles.statusPending
+            ]} />
+            <ThemedText style={styles.statusText}>
+              {item.syncStatus === 'synced' ? 'Synced' :
+               item.syncStatus === 'failed' ? 'Failed' :
+               'Pending'}
+            </ThemedText>
+          </View>
+        </View>
       </View>
     </ThemedView>
   );
 
   const renderPaginationControls = () => {
-    const totalPages = Math.ceil(allExpenses.length / RECORDS_PER_PAGE);
-    const filteredCount = searchQuery.trim() 
-      ? allExpenses.filter(e => 
-          e.payee.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          e.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          e.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          e.currency.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          e.amount.toString().includes(searchQuery)
-        ).length 
-      : allExpenses.length;
-    const filteredPages = Math.ceil(filteredCount / RECORDS_PER_PAGE);
+    const hasPrevious = currentPage > 1;
+    const hasNext = hasMoreData;
 
     return (
       <ThemedView style={styles.paginationContainer}>
-        <ThemedText style={styles.paginationInfo}>
-          Page {currentPage} of {filteredPages} • {filteredCount} records
-        </ThemedText>
-        <View style={styles.paginationButtons}>
-          <TouchableOpacity
-            style={[styles.paginationButton, currentPage === 1 && styles.paginationButtonDisabled]}
-            onPress={loadPreviousPage}
-            disabled={currentPage === 1}
-          >
-            <ThemedText style={[styles.paginationButtonText, currentPage === 1 && styles.paginationButtonTextDisabled]}>
-              Previous
-            </ThemedText>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.paginationButton, !hasMoreData && styles.paginationButtonDisabled]}
-            onPress={loadNextPage}
-            disabled={!hasMoreData}
-          >
-            <ThemedText style={[styles.paginationButtonText, !hasMoreData && styles.paginationButtonTextDisabled]}>
-              Next
-            </ThemedText>
-          </TouchableOpacity>
+        <View style={styles.paginationRow}>
+          <ThemedText style={styles.paginationInfo}>
+            صفحہ {currentPage} • {expenses.length} ریکارڈز
+            {currentSearchTerm.trim() && ` • تلاش: "${currentSearchTerm}"`}
+          </ThemedText>
+          <View style={styles.paginationButtons}>
+            <TouchableOpacity
+              style={[styles.paginationButton, !hasPrevious && styles.paginationButtonDisabled]}
+              onPress={loadPreviousPage}
+              disabled={!hasPrevious}
+            >
+              <ThemedText style={[styles.paginationButtonText, !hasPrevious && styles.paginationButtonTextDisabled]}>
+                ←
+              </ThemedText>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.paginationButton, !hasNext && styles.paginationButtonDisabled]}
+              onPress={loadNextPage}
+              disabled={!hasNext}
+            >
+              <ThemedText style={[styles.paginationButtonText, !hasNext && styles.paginationButtonTextDisabled]}>
+                →
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
         </View>
       </ThemedView>
     );
@@ -183,7 +219,7 @@ export function ExpenseList() {
     return (
       <ThemedView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#F44336" />
-        <ThemedText style={styles.loadingText}>Loading expenses...</ThemedText>
+        <ThemedText style={styles.loadingText}>خرچے لوڈ ہو رہے ہیں...</ThemedText>
       </ThemedView>
     );
   }
@@ -192,48 +228,57 @@ export function ExpenseList() {
     <ThemedView style={styles.container}>
       {/* Statistics Header */}
       <ThemedView style={styles.statsContainer}>
-        <ThemedText type="title">Your Expenses</ThemedText>
         <View style={styles.statsRow}>
           <ThemedView style={styles.statItem}>
             <ThemedText type="subtitle">{stats.totalExpenses}</ThemedText>
-            <ThemedText style={styles.statLabel}>Total Expenses</ThemedText>
+            <ThemedText style={styles.statLabel}>کل خرچے</ThemedText>
           </ThemedView>
           <ThemedView style={styles.statItem}>
-            <ThemedText type="subtitle">${stats.totalAmount.toFixed(2)}</ThemedText>
-            <ThemedText style={styles.statLabel}>Total Amount</ThemedText>
+            <ThemedText type="subtitle">PKR {stats.totalAmount?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</ThemedText>
+            <ThemedText style={styles.statLabel}>کل رقم</ThemedText>
           </ThemedView>
         </View>
       </ThemedView>
 
       {/* Search Bar */}
       <ThemedView style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search expenses..."
-          value={searchQuery}
-          onChangeText={handleSearch}
-          placeholderTextColor="#999"
-        />
+        <View style={styles.searchInputContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="خرچے تلاش کریں..."
+            value={searchQuery}
+            onChangeText={handleSearch}
+            placeholderTextColor="#999"
+            onSubmitEditing={performSearch}
+            returnKeyType="search"
+          />
+        </View>
         {searchQuery.length > 0 && (
           <TouchableOpacity
             style={styles.clearButton}
-            onPress={() => handleSearch('')}
+            onPress={clearSearch}
           >
             <ThemedText style={styles.clearButtonText}>✕</ThemedText>
           </TouchableOpacity>
         )}
+        <TouchableOpacity
+          style={styles.searchButton}
+          onPress={performSearch}
+        >
+          <ThemedText style={styles.searchButtonText}>تلاش</ThemedText>
+        </TouchableOpacity>
       </ThemedView>
 
       {/* Expenses List */}
       {expenses.length === 0 ? (
         <ThemedView style={styles.emptyContainer}>
           <ThemedText type="subtitle">
-            {searchQuery.trim() ? 'No matching expenses' : 'No expenses yet'}
+            {currentSearchTerm.trim() ? 'اس تلاش کے مطابق کو خرچے نہیں' : 'ابھی تک کوئی خرچے نہیں'}
           </ThemedText>
           <ThemedText style={styles.emptyText}>
-            {searchQuery.trim() 
-              ? 'Try adjusting your search terms.'
-              : 'Start by adding your first expense using the "Add Expense" button.'
+            {currentSearchTerm.trim() 
+              ? 'اپنی تلاش کی شرائط کو ایڈجسٹ کرنے کی کوشش کریں۔'
+              : '"خرچہ شامل کریں" بٹن کا استعمال کرتے ہوئے اپنا پہلا خرچہ شامل کرنے سے شروع کریں۔'
             }
           </ThemedText>
         </ThemedView>
@@ -278,57 +323,72 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   statsContainer: {
-    padding: 20,
-    gap: 16,
+    padding: 12,
+    gap: 8,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 20,
+    gap: 12,
   },
   statItem: {
     flex: 1,
-    padding: 16,
+    padding: 8,
     backgroundColor: '#FFEBEE',
-    borderRadius: 8,
+    borderRadius: 4,
     alignItems: 'center',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 9,
     color: '#666',
-    marginTop: 4,
+    marginTop: 1,
   },
   searchContainer: {
     paddingHorizontal: 20,
     paddingBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  searchInput: {
+  searchInputContainer: {
     flex: 1,
-    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
     paddingHorizontal: 12,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
     fontSize: 16,
-    backgroundColor: '#fff',
-    marginTop: 16,
+    paddingVertical: 0,
   },
   clearButton: {
-    position: 'absolute',
-    right: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#ccc',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
   },
   clearButtonText: {
     fontSize: 12,
     color: '#fff',
     fontWeight: 'bold',
+  },
+  searchButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#F44336',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
   },
   list: {
     flex: 1,
@@ -347,6 +407,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   expenseHeader: {
     flexDirection: 'row',
@@ -354,43 +416,72 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  payee: {
-    flex: 1,
-    marginRight: 8,
+  categoryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
   },
-  amount: {
+  categoryText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  categoryIcon: {
     fontSize: 18,
     color: '#F44336',
   },
-  expenseDetails: {
+  amount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#F44336',
+  },
+  descriptionContainer: {
+    marginBottom: 8,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 18,
+    fontStyle: 'italic',
+    textAlign: 'right',
+  },
+  expenseFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
-  category: {
-    fontSize: 14,
+  payee: {
+    fontSize: 12,
     color: '#666',
-    textTransform: 'capitalize',
+    fontWeight: '500',
+    textAlign: 'right',
   },
-  date: {
-    fontSize: 14,
-    color: '#666',
-  },
-  description: {
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
-  syncStatus: {
+  footerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+  },
+  date: {
+    fontSize: 11,
+    color: '#888',
+    fontWeight: '400',
+    textAlign: 'right',
+  },
+  statusSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statusSynced: {
     backgroundColor: '#4CAF50',
@@ -402,7 +493,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F44336',
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
   },
   emptyContainer: {
@@ -423,33 +514,44 @@ const styles = StyleSheet.create({
     borderTopColor: '#e0e0e0',
     backgroundColor: '#fff',
   },
+  paginationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   paginationInfo: {
-    textAlign: 'center',
     fontSize: 14,
     color: '#666',
-    marginBottom: 12,
   },
   paginationButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
   },
   paginationButton: {
-    flex: 1,
-    padding: 12,
+    width: 40,
+    height: 40,
     backgroundColor: '#F44336',
-    borderRadius: 8,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   paginationButtonDisabled: {
     backgroundColor: '#ccc',
   },
   paginationButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '500',
   },
   paginationButtonTextDisabled: {
     color: '#999',
+  },
+  statsTextContainer: {
+    flex: 1,
+  },
+  statsText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '600',
   },
 }); 
