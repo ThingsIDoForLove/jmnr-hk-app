@@ -30,7 +30,7 @@ export class HistoricalSyncService {
       console.log('timestamp:', timestamp);
       console.log('signature:', signature);
 
-      const response = await fetch(`${API_BASE_URL}/donations?username=${encodeURIComponent(username)}&afterDate=${encodeURIComponent(firstDateOfYear)}`, {
+      const response = await fetch(`${API_BASE_URL}/donations?recipient=${encodeURIComponent(username)}&afterDate=${encodeURIComponent(firstDateOfYear)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ export class HistoricalSyncService {
       console.log('timestamp:', timestamp);
       console.log('signature:', signature);
 
-      const response = await fetch(`${API_BASE_URL}/expenses?username=${encodeURIComponent(username)}&afterDate=${encodeURIComponent(firstDateOfYear)}`, {
+      const response = await fetch(`${API_BASE_URL}/expenses?payee=${encodeURIComponent(username)}&afterDate=${encodeURIComponent(firstDateOfYear)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
