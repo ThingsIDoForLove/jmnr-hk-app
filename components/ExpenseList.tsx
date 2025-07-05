@@ -28,6 +28,9 @@ export function ExpenseList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreData, setHasMoreData] = useState(true);
   const RECORDS_PER_PAGE = 30;
+  
+  // Pagination protection
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false);
 
   const getCategoryInUrdu = (category: string) => {
     const categoryMap: { [key: string]: string } = {
@@ -63,9 +66,19 @@ export function ExpenseList() {
     return iconMap[category] || '📋';
   };
 
-  const loadExpenses = async (searchQuery: string = '', page: number = 1) => {
+  const loadExpenses = async (searchQuery: string = '', page: number = 1, isPagination: boolean = false) => {
+    // Prevent multiple simultaneous pagination operations
+    if (isPagination && isPaginationLoading) {
+      console.log('Pagination operation blocked - already loading');
+      return;
+    }
+
     try {
-      setLoading(true);
+      if (isPagination) {
+        setIsPaginationLoading(true);
+      } else {
+        setLoading(true);
+      }
       
       // Get expenses with search and pagination from database
       const [expenseData, statsData] = await Promise.all([
@@ -84,8 +97,12 @@ export function ExpenseList() {
     } catch (error) {
       console.error('Error loading expenses:', error);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (isPagination) {
+        setIsPaginationLoading(false);
+      } else {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
@@ -105,16 +122,16 @@ export function ExpenseList() {
   };
 
   const loadNextPage = () => {
-    if (hasMoreData) {
+    if (hasMoreData && !isPaginationLoading) {
       const nextPage = currentPage + 1;
-      loadExpenses(currentSearchTerm, nextPage);
+      loadExpenses(currentSearchTerm, nextPage, true);
     }
   };
 
   const loadPreviousPage = () => {
-    if (currentPage > 1) {
+    if (currentPage > 1 && !isPaginationLoading) {
       const prevPage = currentPage - 1;
-      loadExpenses(currentSearchTerm, prevPage);
+      loadExpenses(currentSearchTerm, prevPage, true);
     }
   };
 
@@ -193,22 +210,22 @@ export function ExpenseList() {
           </ThemedText>
           <View style={styles.paginationButtons}>
             <TouchableOpacity
-              style={[styles.paginationButton, !hasPrevious && styles.paginationButtonDisabled]}
+              style={[styles.paginationButton, (!hasPrevious || isPaginationLoading) && styles.paginationButtonDisabled]}
               onPress={loadPreviousPage}
-              disabled={!hasPrevious}
+              disabled={!hasPrevious || isPaginationLoading}
             >
-              <ThemedText style={[styles.paginationButtonText, !hasPrevious && styles.paginationButtonTextDisabled]}>
-                ←
+              <ThemedText style={[styles.paginationButtonText, (!hasPrevious || isPaginationLoading) && styles.paginationButtonTextDisabled]}>
+                {isPaginationLoading ? '⏳' : '←'}
               </ThemedText>
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={[styles.paginationButton, !hasNext && styles.paginationButtonDisabled]}
+              style={[styles.paginationButton, (!hasNext || isPaginationLoading) && styles.paginationButtonDisabled]}
               onPress={loadNextPage}
-              disabled={!hasNext}
+              disabled={!hasNext || isPaginationLoading}
             >
-              <ThemedText style={[styles.paginationButtonText, !hasNext && styles.paginationButtonTextDisabled]}>
-                →
+              <ThemedText style={[styles.paginationButtonText, (!hasNext || isPaginationLoading) && styles.paginationButtonTextDisabled]}>
+                {isPaginationLoading ? '⏳' : '→'}
               </ThemedText>
             </TouchableOpacity>
           </View>

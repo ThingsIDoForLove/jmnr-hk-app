@@ -147,18 +147,17 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
           </ThemedView>
 
           <ThemedView style={styles.buttonRow}>
+          <TouchableOpacity
+              style={[styles.button, styles.halfButton]}
+              onPress={() => setCurrentView('expense-list')}
+            >
+              <ThemedText style={styles.buttonText}>💸 تمام اخراجات</ThemedText>
+            </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, styles.halfButton, styles.addExpenseButton]}
               onPress={() => setCurrentView('expense-form')}
             >
               <ThemedText style={styles.buttonText}>➕ نیا خرچ</ThemedText>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.button, styles.halfButton, styles.expenseButton]}
-              onPress={() => setCurrentView('expense-list')}
-            >
-              <ThemedText style={styles.buttonText}>💸 تمام اخراجات</ThemedText>
             </TouchableOpacity>
           </ThemedView>
 
@@ -333,8 +332,8 @@ const styles = StyleSheet.create({
     borderColor: '#F44336',
   },
   addExpenseButton: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
+    backgroundColor: '#D0392E',
+    borderColor: '#F44336',
   },
   buttonText: {
     fontSize: 16,

@@ -28,6 +28,9 @@ export function DonationList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMoreData, setHasMoreData] = useState(true);
   const RECORDS_PER_PAGE = 30;
+  
+  // Pagination protection
+  const [isPaginationLoading, setIsPaginationLoading] = useState(false);
 
   const getCategoryInUrdu = (category: string) => {
     const categoryMap: { [key: string]: string } = {
@@ -49,9 +52,19 @@ export function DonationList() {
     return iconMap[category] || '📋';
   };
 
-  const loadDonations = async (searchQuery: string = '', page: number = 1) => {
+  const loadDonations = async (searchQuery: string = '', page: number = 1, isPagination: boolean = false) => {
+    // Prevent multiple simultaneous pagination operations
+    if (isPagination && isPaginationLoading) {
+      console.log('Pagination operation blocked - already loading');
+      return;
+    }
+
     try {
-      setLoading(true);
+      if (isPagination) {
+        setIsPaginationLoading(true);
+      } else {
+        setLoading(true);
+      }
       
       // Get donations with search and pagination from database
       const [donationData, statsData] = await Promise.all([
@@ -70,8 +83,12 @@ export function DonationList() {
     } catch (error) {
       console.error('Error loading donations:', error);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (isPagination) {
+        setIsPaginationLoading(false);
+      } else {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
@@ -91,16 +108,16 @@ export function DonationList() {
   };
 
   const loadNextPage = () => {
-    if (hasMoreData) {
+    if (hasMoreData && !isPaginationLoading) {
       const nextPage = currentPage + 1;
-      loadDonations(currentSearchTerm, nextPage);
+      loadDonations(currentSearchTerm, nextPage, true);
     }
   };
 
   const loadPreviousPage = () => {
-    if (currentPage > 1) {
+    if (currentPage > 1 && !isPaginationLoading) {
       const prevPage = currentPage - 1;
-      loadDonations(currentSearchTerm, prevPage);
+      loadDonations(currentSearchTerm, prevPage, true);
     }
   };
 
@@ -209,22 +226,22 @@ export function DonationList() {
           </ThemedText>
           <View style={styles.paginationButtons}>
             <TouchableOpacity
-              style={[styles.paginationButton, !hasPrevious && styles.paginationButtonDisabled]}
+              style={[styles.paginationButton, (!hasPrevious || isPaginationLoading) && styles.paginationButtonDisabled]}
               onPress={loadPreviousPage}
-              disabled={!hasPrevious}
+              disabled={!hasPrevious || isPaginationLoading}
             >
-              <ThemedText style={[styles.paginationButtonText, !hasPrevious && styles.paginationButtonTextDisabled]}>
-                ←
+              <ThemedText style={[styles.paginationButtonText, (!hasPrevious || isPaginationLoading) && styles.paginationButtonTextDisabled]}>
+                {isPaginationLoading ? '⏳' : '←'}
               </ThemedText>
             </TouchableOpacity>
             
             <TouchableOpacity
-              style={[styles.paginationButton, !hasNext && styles.paginationButtonDisabled]}
+              style={[styles.paginationButton, (!hasNext || isPaginationLoading) && styles.paginationButtonDisabled]}
               onPress={loadNextPage}
-              disabled={!hasNext}
+              disabled={!hasNext || isPaginationLoading}
             >
-              <ThemedText style={[styles.paginationButtonText, !hasNext && styles.paginationButtonTextDisabled]}>
-                →
+              <ThemedText style={[styles.paginationButtonText, (!hasNext || isPaginationLoading) && styles.paginationButtonTextDisabled]}>
+                {isPaginationLoading ? '⏳' : '→'}
               </ThemedText>
             </TouchableOpacity>
           </View>

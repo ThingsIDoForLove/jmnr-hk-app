@@ -39,6 +39,8 @@ export default function SettingsScreen({ onLogout, onBack }: SettingsScreenProps
     }
   };
 
+
+
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
@@ -211,6 +213,8 @@ export default function SettingsScreen({ onLogout, onBack }: SettingsScreenProps
               <Ionicons name="chevron-forward" size={20} color="#666" />
             )}
           </TouchableOpacity>
+
+
         </ThemedView>
 
         {/* Account Section */}
