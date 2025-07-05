@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSync } from '../hooks/useSync';
 import { DonationRecord } from '../types/data';
 import { ThemedText } from './ThemedText';
@@ -19,6 +20,7 @@ export function DonationList() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({ totalDonations: 0, totalAmount: 0 });
+  const insets = useSafeAreaInsets();
   
   // Search and pagination state
   const [searchQuery, setSearchQuery] = useState('');
@@ -199,7 +201,7 @@ export function DonationList() {
     const hasNext = hasMoreData;
 
     return (
-      <ThemedView style={styles.paginationContainer}>
+      <ThemedView style={[styles.paginationContainer, { paddingBottom: 20 + insets.bottom }]}>
         <View style={styles.paginationRow}>
           <ThemedText style={styles.paginationInfo}>
             صفحہ {currentPage} • {donations.length} ریکارڈز
@@ -412,6 +414,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 20,
     paddingTop: 0,
+    paddingBottom: 20, // Add bottom padding to ensure last items are visible
   },
   donationItem: {
     padding: 20,
