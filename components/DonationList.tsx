@@ -125,29 +125,43 @@ export function DonationList() {
       
       {/* Contact Information and Category */}
       <View style={styles.contactInfo}>
-        <ThemedText style={styles.category}>
-          {getCategoryIcon(item.category)} {getCategoryInUrdu(item.category)}
-        </ThemedText>
-        <ThemedText style={styles.phoneNumber}>
-          {item.benefactorPhone} 📞
-        </ThemedText>
+        <View style={styles.categoryContainer}>
+          <ThemedText style={styles.categoryText}>
+            {getCategoryInUrdu(item.category)}
+          </ThemedText>
+          <ThemedText style={styles.categoryIcon}>
+            {getCategoryIcon(item.category)}
+          </ThemedText>
+        </View>
+        <View style={styles.phoneContainer}>
+          <ThemedText style={styles.phoneText}>
+            {item.benefactorPhone}
+          </ThemedText>
+          <ThemedText style={styles.phoneIcon}>📞</ThemedText>
+        </View>
       </View>
       
       {/* Address */}
       {item.benefactorAddress && (
         <View style={styles.addressContainer}>
-          <ThemedText style={styles.address}>
-            {item.benefactorAddress} 📍
-          </ThemedText>
+          <View style={styles.addressWrapper}>
+            <ThemedText style={styles.addressText}>
+              {item.benefactorAddress}
+            </ThemedText>
+            <ThemedText style={styles.addressIcon}>📍</ThemedText>
+          </View>
         </View>
       )}
       
       {/* Description */}
       {item.description && (
         <View style={styles.descriptionContainer}>
-          <ThemedText style={styles.description}>
-            {item.description} 📝
-          </ThemedText>
+          <View style={styles.descriptionWrapper}>
+            <ThemedText style={styles.descriptionText}>
+              {item.description}
+            </ThemedText>
+            <ThemedText style={styles.descriptionIcon}>📝</ThemedText>
+          </View>
         </View>
       )}
       
@@ -433,89 +447,84 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  addressContainer: {
-    marginBottom: 12,
+  categoryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
   },
-  phoneNumber: {
+  categoryText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  categoryIcon: {
+    fontSize: 16,
+    color: '#007AFF',
+  },
+  phoneContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+  },
+  phoneText: {
     fontSize: 14,
     color: '#555',
     fontWeight: '500',
     textAlign: 'right',
   },
-  address: {
+  phoneIcon: {
+    fontSize: 16,
+    color: '#007AFF',
+  },
+  addressContainer: {
+    marginBottom: 12,
+  },
+  addressWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 4,
+  },
+  addressText: {
     fontSize: 14,
     color: '#666',
     fontStyle: 'italic',
     textAlign: 'right',
   },
+  addressIcon: {
+    fontSize: 16,
+    color: '#007AFF',
+  },
   donationDetails: {
     marginBottom: 12,
   },
-  categoryContainer: {
-    flex: 1,
+  descriptionContainer: {
+    marginBottom: 12,
   },
-  categoryLabel: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 2,
-    fontWeight: '500',
-    textAlign: 'right',
+  descriptionWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 4,
   },
-  category: {
+  descriptionText: {
     fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
+    color: '#555',
+    lineHeight: 20,
+    fontStyle: 'italic',
     textAlign: 'right',
   },
-  dateContainer: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  dateLabel: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 2,
-    fontWeight: '500',
-    textAlign: 'right',
+  descriptionIcon: {
+    fontSize: 16,
+    color: '#007AFF',
   },
   date: {
     fontSize: 12,
     color: '#888',
     fontWeight: '400',
-    textAlign: 'right',
-  },
-  recipientContainer: {
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  recipientLabel: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 4,
-    fontWeight: '500',
-  },
-  recipient: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
-  },
-  descriptionContainer: {
-    marginBottom: 12,
-  },
-  descriptionLabel: {
-    fontSize: 12,
-    color: '#888',
-    marginBottom: 4,
-    fontWeight: '500',
-    textAlign: 'right',
-  },
-  description: {
-    fontSize: 14,
-    color: '#555',
-    lineHeight: 20,
-    fontStyle: 'italic',
     textAlign: 'right',
   },
   syncStatus: {

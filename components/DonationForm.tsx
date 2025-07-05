@@ -396,6 +396,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+    lineHeight:30
   },
   infoContainer: {
     padding: 16,
