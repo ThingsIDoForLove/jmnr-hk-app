@@ -279,13 +279,11 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   contentContainer: {
-    width: '100%',
+    flex: 1,
     padding: 20,
-    maxWidth: 400,
+    gap: 8,
   },
   container: {
     flex: 1,
@@ -296,9 +294,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 40,
-    gap: 8,
+    marginBottom: 20,
   },
   title:{
     lineHeight: 55

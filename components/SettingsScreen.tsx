@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
@@ -6,6 +7,7 @@ import { useExpenseSync } from '../hooks/useExpenseSync';
 import { useSync } from '../hooks/useSync';
 import { databaseService } from '../services/DatabaseService';
 import { HistoricalSyncService } from '../services/HistoricalSyncService';
+import { getDetailedVersionInfo, getVersionDisplay } from '../utils/version';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 
@@ -243,6 +245,36 @@ export default function SettingsScreen({ onLogout, onBack }: SettingsScreenProps
             )}
           </TouchableOpacity>
         </ThemedView>
+
+        {/* Version Footer */}
+        <TouchableOpacity
+          style={styles.versionFooter}
+          onPress={async () => {
+            const detailedInfo = getDetailedVersionInfo();
+            Alert.alert(
+              'ایپ کی تفصیلی معلومات',
+              detailedInfo,
+              [
+                { 
+                  text: 'کاپی کریں', 
+                  onPress: async () => {
+                    try {
+                      await Clipboard.setStringAsync(detailedInfo);
+                      Alert.alert('کامیاب', 'ورژن کی معلومات کاپی ہو گئی ہے');
+                    } catch (error) {
+                      Alert.alert('خرابی', 'کاپی کرنے میں مسئلہ ہوا');
+                    }
+                  }
+                },
+                { text: 'بند کریں', style: 'cancel' }
+              ]
+            );
+          }}
+        >
+          <ThemedText style={styles.versionText}>
+            {getVersionDisplay()}
+          </ThemedText>
+        </TouchableOpacity>
       </ScrollView>
     </ThemedView>
   );
@@ -256,10 +288,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+    backgroundColor: '#fff',
   },
   backButton: {
     flexDirection: 'row',
@@ -269,7 +300,6 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 16,
     color: '#007AFF',
-    fontWeight: '500',
     marginLeft: 4,
   },
   title: {
@@ -277,6 +307,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginRight: 40, // Compensate for back button width
   },
   content: {
     flex: 1,
@@ -330,5 +361,15 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     color: '#F44336',
+  },
+  versionFooter: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    marginTop: 20,
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
   },
 }); 

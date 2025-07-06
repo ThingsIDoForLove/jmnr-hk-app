@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "hisaab-e-khair",
+    "name": "Hisaab-e-Khair",
     "slug": "hisaab-e-khair",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,9 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "me.mashhadi.jmnr.hk",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +19,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "me.mashhadi.jmnr.hk"
+      "package": "me.mashhadi.jmnr.hk",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Button, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { API_BASE_URL } from '../constants/Config';
 import { HistoricalSyncService } from '../services/HistoricalSyncService';
+import { Logo } from './Logo';
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -74,6 +75,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}
         keyboardShouldPersistTaps="handled"
       >
+        <Logo size="large" style={{ marginBottom: 20 }} />
         <Text style={{ fontSize: 22, marginBottom: 24, color: '#1976D2', fontWeight: 'bold' }}>ایپ ایکٹیویشن</Text>
         <Text style={{ textAlign: 'center', fontSize: 16, color: '#d32f2f' }}>
             اس ایپ کو فعال کرنے کے لیے انٹرنیٹ کنکشن ضروری ہے۔ ایکٹیویشن کے بعد آپ آف لائن بھی کام کر سکتے ہیں۔
