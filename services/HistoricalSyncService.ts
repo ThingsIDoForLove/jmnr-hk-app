@@ -33,6 +33,7 @@ export class HistoricalSyncService {
       const response = await fetch(`${API_BASE_URL}/donations?recipient=${encodeURIComponent(username)}&afterDate=${encodeURIComponent(firstDateOfYear)}`, {
         method: 'GET',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
           'X-Timestamp': timestamp,
           'X-Signature': signature,
@@ -45,15 +46,15 @@ export class HistoricalSyncService {
       }
 
       const historicalDonations = await response.json();
-      console.log('Historical donations received:', historicalDonations.length);
+      console.log('Historical donations received:', historicalDonations.data.length);
 
       // 4. Insert historical donations into local database
       let insertedCount = 0;
       
-      if (historicalDonations.length > 0) {
+      if (historicalDonations.data.length > 0) {
         try {
           // Convert API data to DonationRecord format
-          const donationRecords: DonationRecord[] = historicalDonations.map((donation: any) => ({
+          const donationRecords: DonationRecord[] = historicalDonations.data.map((donation: any) => ({
             id: donation.id,
             amount: donation.amount,
             currency: donation.currency,
@@ -77,7 +78,7 @@ export class HistoricalSyncService {
         } catch (error) {
           console.error('Error bulk inserting historical donations:', error);
           // Fallback to individual inserts if bulk fails
-          for (const donation of historicalDonations) {
+          for (const donation of historicalDonations.data) {
             try {
               const existingDonation = await databaseService.getDonationById(donation.id);
               if (!existingDonation) {
@@ -159,15 +160,15 @@ export class HistoricalSyncService {
       }
 
       const historicalExpenses = await response.json();
-      console.log('Historical expenses received:', historicalExpenses.length);
+      console.log('Historical expenses received:', historicalExpenses.data.length);
 
       // 4. Insert historical expenses into local database
       let insertedCount = 0;
       
-      if (historicalExpenses.length > 0) {
+      if (historicalExpenses.data.length > 0) {
         try {
           // Convert API data to ExpenseRecord format
-          const expenseRecords: ExpenseRecord[] = historicalExpenses.map((expense: any) => ({
+          const expenseRecords: ExpenseRecord[] = historicalExpenses.data.map((expense: any) => ({
             id: expense.id,
             amount: expense.amount,
             currency: expense.currency,
@@ -187,7 +188,7 @@ export class HistoricalSyncService {
         } catch (error) {
           console.error('Error bulk inserting historical expenses:', error);
           // Fallback to individual inserts if bulk fails
-          for (const expense of historicalExpenses) {
+          for (const expense of historicalExpenses.data) {
             try {
               const existingExpense = await databaseService.getExpenseById(expense.id);
               if (!existingExpense) {

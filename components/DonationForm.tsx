@@ -1,14 +1,16 @@
 import * as SecureStore from 'expo-secure-store';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useSync } from '../hooks/useSync';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
@@ -116,175 +118,177 @@ export function DonationForm() {
   };
 
   return (
-    <KeyboardAwareScrollView 
-      style={styles.container} 
-      nestedScrollEnabled={true}
-      enableOnAndroid={true}
-      enableAutomaticScroll={true}
-      keyboardShouldPersistTaps="handled"
-      extraScrollHeight={150}
-      extraHeight={200}
-      contentContainerStyle={styles.scrollContent}
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <ThemedView style={styles.form}>
-        {/* Amount */}
-        <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle" style={styles.label}>رقم *</ThemedText>
-          <View style={styles.amountContainer}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <ThemedView style={styles.form}>
+          {/* Amount */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText type="subtitle" style={styles.label}>رقم *</ThemedText>
+            <View style={styles.amountContainer}>
+              <TextInput
+                style={styles.amountInput}
+                value={formData.amount}
+                onChangeText={(text) => setFormData(prev => ({ ...prev, amount: text }))}
+                placeholder="0.00"
+                keyboardType="numeric"
+                editable={!isSubmitting}
+              />
+              <TouchableOpacity
+                style={styles.currencyButton}
+                onPress={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                disabled={isSubmitting}
+              >
+                <ThemedText style={styles.currencyButtonText}>
+                  {formData.currency}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+            
+            {/* Currency Picker */}
+            {showCurrencyPicker && (
+              <ThemedView style={styles.pickerContainer}>
+                {CURRENCIES.map((currency) => (
+                  <TouchableOpacity
+                    key={currency}
+                    style={[
+                      styles.pickerItem,
+                      formData.currency === currency && styles.pickerItemSelected
+                    ]}
+                    onPress={() => {
+                      setFormData(prev => ({ ...prev, currency }));
+                      setShowCurrencyPicker(false);
+                    }}
+                  >
+                    <ThemedText style={[
+                      styles.pickerItemText,
+                      formData.currency === currency && styles.pickerItemTextSelected
+                    ]}>
+                      {currency}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </ThemedView>
+            )}
+          </ThemedView>
+
+          {/* Benefactor Name */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText type="subtitle" style={styles.label}>عطیہ کرنےوالےکانام *</ThemedText>
             <TextInput
-              style={styles.amountInput}
-              value={formData.amount}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, amount: text }))}
-              placeholder="0.00"
-              keyboardType="numeric"
+              style={styles.textInput}
+              value={formData.benefactorName}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, benefactorName: text }))}
+              placeholder="عطیہ کرنےوالے کا مکمل نام"
               editable={!isSubmitting}
             />
+          </ThemedView>
+
+          {/* Benefactor Phone Number */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText type="subtitle" style={styles.label}> فون نمبر *</ThemedText>
+            <TextInput
+              style={styles.textInput}
+              value={formData.benefactorPhone}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, benefactorPhone: text }))}
+              placeholder="+92xxxxxxxxxx"
+              keyboardType="phone-pad"
+              editable={!isSubmitting}
+              maxLength={16}
+            />
+          </ThemedView>
+
+          {/* Benefactor Address (Optional) */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText type="subtitle" style={styles.label}>پتہ</ThemedText>
+            <TextInput
+              style={styles.textInput}
+              value={formData.benefactorAddress}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, benefactorAddress: text }))}
+              placeholder="پتہ"
+              editable={!isSubmitting}
+            />
+          </ThemedView>
+
+          {/* Category */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText type="subtitle" style={styles.label}>قسم</ThemedText>
             <TouchableOpacity
-              style={styles.currencyButton}
-              onPress={() => setShowCurrencyPicker(!showCurrencyPicker)}
+              style={styles.categoryButton}
+              onPress={() => setShowCategoryPicker(!showCategoryPicker)}
               disabled={isSubmitting}
             >
-              <ThemedText style={styles.currencyButtonText}>
-                {formData.currency}
+              <ThemedText style={styles.categoryButtonText}>
+                {CATEGORIES.find(cat => cat.value === formData.category)?.label}
               </ThemedText>
             </TouchableOpacity>
-          </View>
-          
-          {/* Currency Picker */}
-          {showCurrencyPicker && (
-            <ThemedView style={styles.pickerContainer}>
-              {CURRENCIES.map((currency) => (
-                <TouchableOpacity
-                  key={currency}
-                  style={[
-                    styles.pickerItem,
-                    formData.currency === currency && styles.pickerItemSelected
-                  ]}
-                  onPress={() => {
-                    setFormData(prev => ({ ...prev, currency }));
-                    setShowCurrencyPicker(false);
-                  }}
-                >
-                  <ThemedText style={[
-                    styles.pickerItemText,
-                    formData.currency === currency && styles.pickerItemTextSelected
-                  ]}>
-                    {currency}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </ThemedView>
-          )}
-        </ThemedView>
+            
+            {/* Category Picker */}
+            {showCategoryPicker && (
+              <ThemedView style={styles.pickerContainer}>
+                {CATEGORIES.map((category) => (
+                  <TouchableOpacity
+                    key={category.value}
+                    style={[
+                      styles.pickerItem,
+                      formData.category === category.value && styles.pickerItemSelected
+                    ]}
+                    onPress={() => {
+                      setFormData(prev => ({ ...prev, category: category.value as 'charity' | 'zakat' | 'sadaqah' | 'other' }));
+                      setShowCategoryPicker(false);
+                    }}
+                  >
+                    <ThemedText style={[
+                      styles.pickerItemText,
+                      formData.category === category.value && styles.pickerItemTextSelected
+                    ]}>
+                      {category.label}
+                    </ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </ThemedView>
+            )}
+          </ThemedView>
 
-        {/* Benefactor Name */}
-        <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle" style={styles.label}>عطیہ کرنےوالےکانام *</ThemedText>
-          <TextInput
-            style={styles.textInput}
-            value={formData.benefactorName}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, benefactorName: text }))}
-            placeholder="عطیہ کرنےوالے کا مکمل نام"
-            editable={!isSubmitting}
-          />
-        </ThemedView>
+          {/* Description */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText type="subtitle" style={styles.label}>تفصیل</ThemedText>
+            <TextInput
+              style={[styles.textInput, styles.textArea]}
+              value={formData.description}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
+              placeholder="اس عطیہ کی مزید تفصیل"
+              multiline
+              numberOfLines={3}
+              editable={!isSubmitting}
+            />
+          </ThemedView>
 
-        {/* Benefactor Phone Number */}
-        <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle" style={styles.label}> فون نمبر *</ThemedText>
-          <TextInput
-            style={styles.textInput}
-            value={formData.benefactorPhone}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, benefactorPhone: text }))}
-            placeholder="+92xxxxxxxxxx"
-            keyboardType="phone-pad"
-            editable={!isSubmitting}
-            maxLength={16}
-          />
-        </ThemedView>
-
-        {/* Benefactor Address (Optional) */}
-        <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle" style={styles.label}>پتہ</ThemedText>
-          <TextInput
-            style={styles.textInput}
-            value={formData.benefactorAddress}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, benefactorAddress: text }))}
-            placeholder="پتہ"
-            editable={!isSubmitting}
-          />
-        </ThemedView>
-
-        {/* Category */}
-        <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle" style={styles.label}>قسم</ThemedText>
+          {/* Submit Button */}
           <TouchableOpacity
-            style={styles.categoryButton}
-            onPress={() => setShowCategoryPicker(!showCategoryPicker)}
+            style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+            onPress={handleSubmit}
             disabled={isSubmitting}
           >
-            <ThemedText style={styles.categoryButtonText}>
-              {CATEGORIES.find(cat => cat.value === formData.category)?.label}
-            </ThemedText>
+            {isSubmitting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <ThemedText style={styles.submitButtonText}>
+                عطیہ محفوظ کریں
+              </ThemedText>
+            )}
           </TouchableOpacity>
-          
-          {/* Category Picker */}
-          {showCategoryPicker && (
-            <ThemedView style={styles.pickerContainer}>
-              {CATEGORIES.map((category) => (
-                <TouchableOpacity
-                  key={category.value}
-                  style={[
-                    styles.pickerItem,
-                    formData.category === category.value && styles.pickerItemSelected
-                  ]}
-                  onPress={() => {
-                    setFormData(prev => ({ ...prev, category: category.value as 'charity' | 'zakat' | 'sadaqah' | 'other' }));
-                    setShowCategoryPicker(false);
-                  }}
-                >
-                  <ThemedText style={[
-                    styles.pickerItemText,
-                    formData.category === category.value && styles.pickerItemTextSelected
-                  ]}>
-                    {category.label}
-                  </ThemedText>
-                </TouchableOpacity>
-              ))}
-            </ThemedView>
-          )}
         </ThemedView>
-
-        {/* Description */}
-        <ThemedView style={styles.inputGroup}>
-          <ThemedText type="subtitle" style={styles.label}>تفصیل</ThemedText>
-          <TextInput
-            style={[styles.textInput, styles.textArea]}
-            value={formData.description}
-            onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
-            placeholder="اس عطیہ کی مزید تفصیل"
-            multiline
-            numberOfLines={3}
-            editable={!isSubmitting}
-          />
-        </ThemedView>
-
-        {/* Submit Button */}
-        <TouchableOpacity
-          style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <ThemedText style={styles.submitButtonText}>
-              عطیہ محفوظ کریں
-            </ThemedText>
-          )}
-        </TouchableOpacity>
-      </ThemedView>
-    </KeyboardAwareScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

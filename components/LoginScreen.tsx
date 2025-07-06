@@ -106,6 +106,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             disabled={loading}
             color="#1976D2"
           />
+
         </View>
         {loading && <ActivityIndicator style={{ marginTop: 16 }} color="#1976D2" />}
       </ScrollView>
