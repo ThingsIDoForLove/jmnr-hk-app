@@ -37,6 +37,7 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       if (!res.ok) {
         if (res.status === 401 || res.status === 403) {
           Alert.alert('غلط یوزرنیم یا پاس ورڈ');
+          console.log(res.text());
         } else {
           Alert.alert('اکٹیویشن ناکام', 'سرور کی خرابی');
         }

@@ -10,7 +10,7 @@ import LoginScreen from '../components/LoginScreen';
 import HomeScreen from './index';
 
 
-export default Sentry.wrap(function RootLayout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -46,4 +46,4 @@ export default Sentry.wrap(function RootLayout() {
       <StatusBar style="auto" />
     </ThemeProvider>
   );
-});
+};

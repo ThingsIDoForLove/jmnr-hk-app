@@ -1,13 +1,14 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useExpenseSync } from '../hooks/useExpenseSync';
 import { ThemedText } from './ThemedText';
@@ -20,6 +21,7 @@ interface ExpenseFormData {
   category: 'office_supplies' | 'utilities' | 'rent' | 'maintenance' | 'transportation' | 'meals' | 'events' | 'marketing' | 'equipment' | 'services' | 'other';
   description: string;
   isPersonal: boolean;
+  date: Date;
 }
 
 const CURRENCIES = ['PKR'];
@@ -48,8 +50,10 @@ export function ExpenseForm() {
     category: 'office_supplies',
     description: '',
     isPersonal: false,
+    date: new Date(),
   });
   const [username, setUsername] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     SecureStore.getItemAsync('username').then(val => {
@@ -78,7 +82,7 @@ export function ExpenseForm() {
         payee: username,
         category: formData.category,
         description: formData.description || undefined,
-        date: new Date().toISOString(),
+        date: formData.date.toISOString(),
         isPersonal: formData.isPersonal,
       });
 
@@ -95,6 +99,7 @@ export function ExpenseForm() {
                 category: 'office_supplies',
                 description: '',
                 isPersonal: false,
+                date: new Date(),
               });
             },
           },
@@ -208,6 +213,34 @@ export function ExpenseForm() {
             numberOfLines={3}
             editable={!isSubmitting}
           />
+        </ThemedView>
+
+        {/* Date Field */}
+        <ThemedView style={styles.inputGroup}>
+          <ThemedText type="subtitle" style={{textAlign: 'right'}}>تاریخ</ThemedText>
+          <TouchableOpacity
+            style={[styles.textInput, {justifyContent: 'center'}]}
+            onPress={() => setShowDatePicker(true)}
+            disabled={isSubmitting}
+          >
+            <ThemedText>
+              {formData.date.toLocaleDateString()}
+            </ThemedText>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={formData.date}
+              mode="date"
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowDatePicker(false);
+                if (selectedDate) {
+                  setFormData(prev => ({ ...prev, date: selectedDate }));
+                }
+              }}
+              maximumDate={new Date()}
+            />
+          )}
         </ThemedView>
 
         {/* Submit Button */}
