@@ -219,8 +219,6 @@ class DatabaseService {
           category TEXT NOT NULL,
           description TEXT,
           date TEXT NOT NULL,
-          book_no TEXT,
-          receipt_serial_no INTEGER,
           location_lat REAL,
           location_lng REAL,
           receipt_image TEXT,

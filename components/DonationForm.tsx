@@ -2,15 +2,15 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useSync } from '../hooks/useSync';
 import { ThemedText } from './ThemedText';
@@ -324,12 +324,12 @@ export function DonationForm() {
 
           {/* Book No Field */}
           <ThemedView style={styles.inputGroup}>
-            <ThemedText type="subtitle" style={styles.label}>کتاب نمبر</ThemedText>
+            <ThemedText type="subtitle" style={styles.label}>رسیدبک نمبر</ThemedText>
             <TextInput
               style={styles.textInput}
               value={formData.bookNo}
               onChangeText={(text) => setFormData(prev => ({ ...prev, bookNo: text }))}
-              placeholder="کتاب نمبر (اختیاری)"
+              placeholder="رسیدبک نمبر"
               editable={!isSubmitting}
             />
           </ThemedView>

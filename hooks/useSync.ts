@@ -118,6 +118,8 @@ export function useSync() {
           category: donation.category,
           description: donation.description,
           date: donation.date,
+          bookNo: donation.bookNo, // <-- add this
+          receiptSerialNo: donation.receiptSerialNo, // <-- add this
         }));
         
         const batchString = JSON.stringify(cleanBatch);
