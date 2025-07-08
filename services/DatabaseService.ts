@@ -189,6 +189,12 @@ class DatabaseService {
         ? pragmaResult[0].user_version
         : 0;
 
+      // Migration to version 1: add book_no and receipt_serial_no to donations
+      if (version < 1) {
+        await connection.execAsync('ALTER TABLE donations ADD COLUMN book_no TEXT;');
+        await connection.execAsync('ALTER TABLE donations ADD COLUMN receipt_serial_no INTEGER;');
+        await connection.execAsync('PRAGMA user_version = 1;');
+      }
       // Add more migrations as needed
     } finally {
       this.releaseConnection();
@@ -213,6 +219,8 @@ class DatabaseService {
           category TEXT NOT NULL,
           description TEXT,
           date TEXT NOT NULL,
+          book_no TEXT,
+          receipt_serial_no INTEGER,
           location_lat REAL,
           location_lng REAL,
           receipt_image TEXT,
@@ -255,9 +263,10 @@ class DatabaseService {
       const query = `
         INSERT OR REPLACE INTO donations (
           id, amount, currency, benefactor_name, benefactor_phone, benefactor_address, recipient, category, description, date,
+          book_no, receipt_serial_no,
           location_lat, location_lng, receipt_image,
           created_at, updated_at, sync_status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       await connection.runAsync(query, [
@@ -271,6 +280,8 @@ class DatabaseService {
         donation.category,
         donation.description || null,
         donation.date,
+        donation.bookNo || null,
+        donation.receiptSerialNo !== undefined ? donation.receiptSerialNo : null,
         donation.location?.latitude || null,
         donation.location?.longitude || null,
         donation.receiptImage || null,
@@ -356,6 +367,8 @@ class DatabaseService {
       category: row.category,
       description: row.description || undefined,
       date: row.date,
+      bookNo: row.book_no || undefined,
+      receiptSerialNo: row.receipt_serial_no !== null && row.receipt_serial_no !== undefined ? row.receipt_serial_no : undefined,
       location: row.location_lat && row.location_lng ? {
         latitude: row.location_lat,
         longitude: row.location_lng,
@@ -551,9 +564,10 @@ class DatabaseService {
         const query = `
           INSERT OR REPLACE INTO donations (
             id, amount, currency, benefactor_name, benefactor_phone, benefactor_address, recipient, category, description, date,
+            book_no, receipt_serial_no,
             location_lat, location_lng, receipt_image,
             created_at, updated_at, sync_status
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         // Prepare statement for better performance
@@ -571,6 +585,8 @@ class DatabaseService {
             donation.category,
             donation.description || null,
             donation.date,
+            donation.bookNo || null,
+            donation.receiptSerialNo !== undefined ? donation.receiptSerialNo : null,
             donation.location?.latitude || null,
             donation.location?.longitude || null,
             donation.receiptImage || null,
@@ -644,9 +660,10 @@ class DatabaseService {
         const query = `
           INSERT OR REPLACE INTO donations (
             id, amount, currency, benefactor_name, benefactor_phone, benefactor_address, recipient, category, description, date,
+            book_no, receipt_serial_no,
             location_lat, location_lng, receipt_image,
             created_at, updated_at, sync_status
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         // Prepare statement for better performance
@@ -668,6 +685,8 @@ class DatabaseService {
               donation.category,
               donation.description || null,
               donation.date,
+              donation.bookNo || null,
+              donation.receiptSerialNo !== undefined ? donation.receiptSerialNo : null,
               donation.location?.latitude || null,
               donation.location?.longitude || null,
               donation.receiptImage || null,

@@ -9,6 +9,8 @@ export interface DonationRecord {
   category: 'charity' | 'zakat' | 'sadaqah' | 'other';
   description?: string;
   date: string; // ISO string
+  bookNo?: string;
+  receiptSerialNo?: number;
   location?: {
     latitude: number;
     longitude: number;

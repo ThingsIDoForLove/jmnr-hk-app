@@ -26,6 +26,8 @@ interface DonationFormData {
   description: string;
   recipient?: string;
   date: Date;
+  bookNo?: string;
+  receiptSerialNo?: string;
 }
 
 const CURRENCIES = ['PKR'];
@@ -50,6 +52,8 @@ export function DonationForm() {
     category: 'charity',
     description: '',
     date: new Date(),
+    bookNo: '',
+    receiptSerialNo: '',
   });
   const [username, setUsername] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -78,6 +82,15 @@ export function DonationForm() {
       return;
     }
 
+    let receiptSerialNo: number | undefined = undefined;
+    if (formData.receiptSerialNo && formData.receiptSerialNo.trim() !== '') {
+      receiptSerialNo = parseInt(formData.receiptSerialNo, 10);
+      if (isNaN(receiptSerialNo)) {
+        Alert.alert('خرابی', 'براہ کرم درست رسید سیریل نمبر درج کریں (صرف عدد)');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -91,6 +104,8 @@ export function DonationForm() {
         description: formData.description || undefined,
         recipient: username,
         date: formData.date.toISOString(),
+        bookNo: formData.bookNo || undefined,
+        receiptSerialNo,
       });
 
       Alert.alert(
@@ -110,6 +125,8 @@ export function DonationForm() {
                 category: 'charity',
                 description: '',
                 date: new Date(),
+                bookNo: '',
+                receiptSerialNo: '',
               });
             },
           },
@@ -303,6 +320,30 @@ export function DonationForm() {
                 maximumDate={new Date()}
               />
             )}
+          </ThemedView>
+
+          {/* Book No Field */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText type="subtitle" style={styles.label}>کتاب نمبر</ThemedText>
+            <TextInput
+              style={styles.textInput}
+              value={formData.bookNo}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, bookNo: text }))}
+              placeholder="کتاب نمبر (اختیاری)"
+              editable={!isSubmitting}
+            />
+          </ThemedView>
+          {/* Receipt Serial No Field */}
+          <ThemedView style={styles.inputGroup}>
+            <ThemedText type="subtitle" style={styles.label}>رسید سیریل نمبر *</ThemedText>
+            <TextInput
+              style={styles.textInput}
+              value={formData.receiptSerialNo}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, receiptSerialNo: text }))}
+              placeholder="صرف عدد"
+              keyboardType="numeric"
+              editable={!isSubmitting}
+            />
           </ThemedView>
 
           {/* Submit Button */}
