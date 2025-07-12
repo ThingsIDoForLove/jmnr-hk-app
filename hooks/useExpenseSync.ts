@@ -158,89 +158,7 @@ export function useExpenseSync() {
     }
   }, [updateSyncStatus]);
 
-  const syncHistoricalExpenses = useCallback(async () => {
-    try {
-      setSyncStatus(prev => ({ ...prev, isSyncing: true }));
 
-      // 1. Get credentials
-      const username = await SecureStore.getItemAsync('username');
-      const signingKey = await SecureStore.getItemAsync('signingKey');
-      if (!username || !signingKey) {
-        console.log('No credentials found for historical expense sync');
-        return;
-      }
-
-      // 2. Get first date of current year
-      const currentYear = new Date().getFullYear();
-      const firstDateOfYear = new Date(currentYear, 0, 1).toISOString().split('T')[0]; // YYYY-MM-DD format
-
-      // 3. Fetch historical expenses from server
-      const timestamp = new Date().toISOString();
-      const dataToSign = username + firstDateOfYear + timestamp;
-      const signature = CryptoJS.HmacSHA256(dataToSign, signingKey).toString();
-
-      console.log('=== HISTORICAL EXPENSES SYNC ===');
-      console.log('username:', username);
-      console.log('afterDate:', firstDateOfYear);
-      console.log('timestamp:', timestamp);
-      console.log('signature:', signature);
-
-      const response = await fetch(`${API_BASE_URL}/api/expenses?username=${encodeURIComponent(username)}&afterDate=${encodeURIComponent(firstDateOfYear)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Timestamp': timestamp,
-          'X-Signature': signature,
-        },
-      });
-
-      if (!response.ok) {
-        console.error('Failed to fetch historical expenses:', response.status, response.statusText);
-        return;
-      }
-
-      const historicalExpenses = await response.json();
-      console.log('Historical expenses received:', historicalExpenses.length);
-
-      // 4. Insert historical expenses into local database
-      let insertedCount = 0;
-      for (const expense of historicalExpenses) {
-        try {
-          // Check if expense already exists (by ID or by unique combination)
-          const existingExpense = await databaseService.getExpenseById(expense.id);
-          if (!existingExpense) {
-            // Create expense record with synced status
-            const newExpense: ExpenseRecord = {
-              id: expense.id,
-              amount: expense.amount,
-              currency: expense.currency,
-              payee: expense.payee,
-              category: expense.category,
-              description: expense.description,
-              date: expense.date,
-              isPersonal: expense.isPersonal,
-              createdAt: expense.createdAt || new Date().toISOString(),
-              updatedAt: expense.updatedAt || new Date().toISOString(),
-              syncStatus: 'synced', // Mark as already synced
-            };
-
-            await databaseService.saveExpense(newExpense);
-            insertedCount++;
-          }
-        } catch (error) {
-          console.error('Error inserting historical expense:', error);
-        }
-      }
-
-      console.log(`Historical expense sync completed: ${insertedCount} expenses inserted`);
-      await updateSyncStatus();
-
-    } catch (error) {
-      console.error('Error during historical expenses sync:', error);
-    } finally {
-      setSyncStatus(prev => ({ ...prev, isSyncing: false }));
-    }
-  }, [updateSyncStatus]);
 
   const getExpenses = useCallback(async (limit = 50, offset = 0, searchQuery?: string) => {
     try {
@@ -291,7 +209,6 @@ export function useExpenseSync() {
     syncStatus,
     saveExpense,
     manualSync,
-    syncHistoricalExpenses,
     getExpenses,
     getExpenseById,
     getStatistics,
