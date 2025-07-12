@@ -26,21 +26,21 @@ const getEnvironment = (): 'development' | 'preview' | 'production' => {
 // Environment-specific configurations
 const ENV_CONFIG = {
   development: {
-    API_BASE_URL: 'https://jmnr-hk-git-stage-rasikh-labs.vercel.app/api',
+    API_BASE_URL: 'https://jmnr-hk-git-stage-rasikh-labs.vercel.app/api/v1.1',
     ENV_NAME: 'Development',
     DEBUG_MODE: true,
     LOG_LEVEL: 'debug',
     APP_NAME: 'Hisaab-e-Khair (Dev)',
   },
   preview: {
-    API_BASE_URL: 'https://jmnr-hk-git-stage-rasikh-labs.vercel.app/api',
+    API_BASE_URL: 'https://jmnr-hk-git-stage-rasikh-labs.vercel.app/api/v1.1',
     ENV_NAME: 'Preview',
     DEBUG_MODE: true,
     LOG_LEVEL: 'info',
     APP_NAME: 'Hisaab-e-Khair (Preview)',
   },
   production: {
-    API_BASE_URL: 'https://jmnr-hk.vercel.app/api',
+    API_BASE_URL: 'https://jmnr-hk.vercel.app/api/v1.1',
     ENV_NAME: 'Production',
     DEBUG_MODE: false,
     LOG_LEVEL: 'error',

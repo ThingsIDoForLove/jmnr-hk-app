@@ -118,8 +118,8 @@ export function useSync() {
           category: donation.category,
           description: donation.description,
           date: donation.date,
-          bookNo: donation.bookNo, // <-- add this
-          receiptSerialNo: donation.receiptSerialNo, // <-- add this
+          bookNo: donation.bookNo,
+          serialNo: donation.receiptSerialNo, 
         }));
         
         const batchString = JSON.stringify(cleanBatch);
@@ -172,133 +172,7 @@ export function useSync() {
     }
   }, [updateSyncStatus]);
 
-  const syncHistoricalDonations = useCallback(async () => {
-    try {
-      setSyncStatus(prev => ({ ...prev, isSyncing: true }));
 
-      // 1. Get credentials
-      const username = await SecureStore.getItemAsync('username');
-      const signingKey = await SecureStore.getItemAsync('signingKey');
-      if (!username || !signingKey) {
-        console.log('No credentials found for historical sync');
-        return;
-      }
-
-      // 2. Get first date of current year
-      const currentYear = new Date().getFullYear();
-      const firstDateOfYear = new Date(currentYear, 0, 1).toISOString().split('T')[0]; // YYYY-MM-DD format
-
-      // 3. Fetch historical donations from server
-      const timestamp = new Date().toISOString();
-      const dataToSign = username + firstDateOfYear + timestamp;
-      const signature = CryptoJS.HmacSHA256(dataToSign, signingKey).toString();
-
-      console.log('=== HISTORICAL DONATIONS SYNC ===');
-      console.log('username:', username);
-      console.log('afterDate:', firstDateOfYear);
-      console.log('timestamp:', timestamp);
-      console.log('signature:', signature);
-
-      const response = await fetch(`${API_BASE_URL}/api/donations?username=${encodeURIComponent(username)}&afterDate=${encodeURIComponent(firstDateOfYear)}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Timestamp': timestamp,
-          'X-Signature': signature,
-        },
-      });
-
-      if (!response.ok) {
-        console.error('Failed to fetch historical donations:', response.status, response.statusText);
-        return;
-      }
-
-      const historicalDonations = await response.json();
-      console.log('Historical donations received:', historicalDonations.length);
-
-      // 4. Insert historical donations into local database
-      let insertedCount = 0;
-      for (const donation of historicalDonations) {
-        try {
-          // Check if donation already exists (by ID or by unique combination)
-          const existingDonation = await databaseService.getDonationById(donation.id);
-          if (!existingDonation) {
-            // Create donation record with synced status
-            const newDonation: DonationRecord = {
-              id: donation.id,
-              amount: donation.amount,
-              currency: donation.currency,
-              benefactorName: donation.benefactorName,
-              benefactorPhone: donation.benefactorPhone,
-              benefactorAddress: donation.benefactorAddress,
-              recipient: donation.recipient,
-              category: donation.category,
-              description: donation.description,
-              date: donation.date,
-              location: donation.location,
-              receiptImage: donation.receiptImage,
-              createdAt: donation.createdAt || new Date().toISOString(),
-              updatedAt: donation.updatedAt || new Date().toISOString(),
-              syncStatus: 'synced', // Mark as already synced
-            };
-
-            await databaseService.saveDonation(newDonation);
-            insertedCount++;
-          }
-        } catch (error) {
-          console.error('Error inserting historical donation:', error);
-        }
-      }
-
-      console.log(`Historical sync completed: ${insertedCount} donations inserted`);
-      await updateSyncStatus();
-
-    } catch (error) {
-      console.error('Error during historical donations sync:', error);
-    } finally {
-      setSyncStatus(prev => ({ ...prev, isSyncing: false }));
-    }
-  }, [updateSyncStatus]);
-
-  const syncHistoricalData = useCallback(async () => {
-    try {
-      setSyncStatus(prev => ({ ...prev, isSyncing: true }));
-
-      // 1. Get credentials
-      const username = await SecureStore.getItemAsync('username');
-      const signingKey = await SecureStore.getItemAsync('signingKey');
-      if (!username || !signingKey) {
-        console.log('No credentials found for historical data sync');
-        return;
-      }
-
-      // 2. Get first date of current year
-      const currentYear = new Date().getFullYear();
-      const firstDateOfYear = new Date(currentYear, 0, 1).toISOString().split('T')[0]; // YYYY-MM-DD format
-
-      console.log('=== HISTORICAL DATA SYNC STARTED ===');
-      console.log('username:', username);
-      console.log('afterDate:', firstDateOfYear);
-
-      // 3. Sync donations first
-      try {
-        await syncHistoricalDonations();
-        console.log('Historical donations sync completed successfully');
-      } catch (error) {
-        console.error('Historical donations sync failed:', error);
-      }
-
-      // 4. Sync expenses (we'll implement this separately)
-      console.log('Historical expenses sync will be implemented separately');
-
-      console.log('=== HISTORICAL DATA SYNC COMPLETED ===');
-
-    } catch (error) {
-      console.error('Error during historical data sync:', error);
-    } finally {
-      setSyncStatus(prev => ({ ...prev, isSyncing: false }));
-    }
-  }, [syncHistoricalDonations]);
 
   const getDonations = useCallback(async (limit = 50, offset = 0, searchQuery?: string) => {
     try {
@@ -354,8 +228,6 @@ export function useSync() {
     // Actions
     saveDonation,
     manualSync,
-    syncHistoricalDonations,
-    syncHistoricalData,
     getDonations,
     getDonationById,
     getStatistics,

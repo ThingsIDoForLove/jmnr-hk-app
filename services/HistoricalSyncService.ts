@@ -67,6 +67,8 @@ export class HistoricalSyncService {
             date: donation.date,
             location: donation.location,
             receiptImage: donation.receiptImage,
+            bookNo: donation.bookNo,
+            receiptSerialNo: donation.serialNo,
             createdAt: donation.createdAt || new Date().toISOString(),
             updatedAt: donation.updatedAt || new Date().toISOString(),
             syncStatus: 'synced', // Mark as already synced
@@ -95,6 +97,8 @@ export class HistoricalSyncService {
                   date: donation.date,
                   location: donation.location,
                   receiptImage: donation.receiptImage,
+                  bookNo: donation.bookNo,
+                  receiptSerialNo: donation.serialNo,
                   createdAt: donation.createdAt || new Date().toISOString(),
                   updatedAt: donation.updatedAt || new Date().toISOString(),
                   syncStatus: 'synced', // Mark as already synced
