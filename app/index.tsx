@@ -8,15 +8,17 @@ import { ThemedView } from '@/components/ThemedView';
 import { useExpenseSync } from '@/hooks/useExpenseSync';
 import { useSync } from '@/hooks/useSync';
 import { databaseService } from '@/services/DatabaseService';
+import Bugsnag from '@bugsnag/expo';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Alert, BackHandler, Platform, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface HomeScreenProps {
   onLogout: () => void;
+  onLayout?: () => Promise<void>;
 }
 
-export default function HomeScreen({ onLogout }: HomeScreenProps) {
+export default function HomeScreen({ onLogout, onLayout }: HomeScreenProps) {
   const [dbReady, setDbReady] = useState(false);
   const [currentView, setCurrentView] = useState<'main' | 'list' | 'form' | 'expense-list' | 'expense-form' | 'settings' | 'reports'>('main');
   const { getStatistics, manualSync, syncStatus } = useSync();
@@ -34,6 +36,7 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
         setDbReady(true);
       })
       .catch((error) => {
+        Bugsnag.notify(error);
         console.error('Failed to initialize database:', error);
         Alert.alert(
           'Database Error',
@@ -57,6 +60,13 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
         );
       });
   }, []);
+
+  useEffect(() => {
+    // Call onLayout when component mounts
+    if (onLayout) {
+      onLayout();
+    }
+  }, [onLayout]);
 
   useEffect(() => {
     if (dbReady) {

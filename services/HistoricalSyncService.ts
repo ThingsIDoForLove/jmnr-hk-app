@@ -1,3 +1,4 @@
+import Bugsnag from '@bugsnag/expo';
 import * as CryptoJS from 'crypto-js';
 import * as SecureStore from 'expo-secure-store';
 import { API_BASE_URL } from '../constants/Config';
@@ -42,6 +43,7 @@ export class HistoricalSyncService {
 
       if (!response.ok) {
         console.error('Failed to fetch historical donations:', response.status, response.statusText);
+        Bugsnag.notify(new Error(`Failed to fetch historical donations: ${response.status} ${response.statusText}`));
         return 0;
       }
 
@@ -79,6 +81,7 @@ export class HistoricalSyncService {
           insertedCount = donationRecords.length;
         } catch (error) {
           console.error('Error bulk inserting historical donations:', error);
+          Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
           // Fallback to individual inserts if bulk fails
           for (const donation of historicalDonations.data) {
             try {
@@ -109,6 +112,7 @@ export class HistoricalSyncService {
               }
             } catch (error) {
               console.error('Error inserting historical donation:', error);
+              Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
             }
           }
         }
@@ -119,6 +123,7 @@ export class HistoricalSyncService {
 
     } catch (error) {
       console.error('Error during historical donations sync:', error);
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
       return 0;
     }
   }
@@ -160,6 +165,7 @@ export class HistoricalSyncService {
       if (!response.ok) {
         
         console.error('Failed to fetch historical expenses:', response.status, response.statusText);
+        Bugsnag.notify(new Error(`Failed to fetch historical expenses: ${response.status} ${response.statusText}`));
         return 0;
       }
 
@@ -191,6 +197,7 @@ export class HistoricalSyncService {
           insertedCount = expenseRecords.length;
         } catch (error) {
           console.error('Error bulk inserting historical expenses:', error);
+          Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
           // Fallback to individual inserts if bulk fails
           for (const expense of historicalExpenses.data) {
             try {
@@ -215,6 +222,7 @@ export class HistoricalSyncService {
               }
             } catch (error) {
               console.error('Error inserting historical expense:', error);
+              Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
             }
           }
         }
@@ -225,6 +233,7 @@ export class HistoricalSyncService {
 
     } catch (error) {
       console.error('Error during historical expenses sync:', error);
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
       return 0;
     }
   }

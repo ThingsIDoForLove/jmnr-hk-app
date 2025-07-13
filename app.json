@@ -48,6 +48,9 @@
       "router": {},
       "eas": {
         "projectId": "8977e5f0-7145-4e0c-8e3d-0fc38e4814f6"
+      },
+      "bugsnag": {
+        "apiKey": "a9e021caac9c4195df75a595e0d5a10f"
       }
     }
   }

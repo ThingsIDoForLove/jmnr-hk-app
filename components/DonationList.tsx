@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSync } from '../hooks/useSync';
@@ -180,6 +180,28 @@ export function DonationList() {
               {item.description}
             </ThemedText>
             <ThemedText style={styles.descriptionIcon}>📝</ThemedText>
+          </View>
+        </View>
+      )}
+      
+      {/* Book No and Receipt Serial No */}
+      {item.bookNo && (
+        <View style={styles.receiptContainer}>
+          <View style={styles.receiptWrapper}>
+            <ThemedText style={styles.receiptText}>
+              {item.bookNo}
+            </ThemedText>
+            <ThemedText style={styles.receiptIcon}>📖</ThemedText>
+          </View>
+        </View>
+      )}
+      {item.receiptSerialNo && (
+        <View style={styles.receiptContainer}>
+          <View style={styles.receiptWrapper}>
+            <ThemedText style={styles.receiptText}>
+              {item.receiptSerialNo}
+            </ThemedText>
+            <ThemedText style={styles.receiptIcon}>🧾</ThemedText>
           </View>
         </View>
       )}
@@ -601,6 +623,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  receiptContainer: {
+    marginBottom: 12,
+  },
+  receiptWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 4,
+  },
+  receiptText: {
+    fontSize: 14,
+    color: '#555',
+    fontWeight: '500',
+    textAlign: 'right',
+  },
+  receiptIcon: {
+    fontSize: 16,
+    color: '#007AFF',
   },
   emptyContainer: {
     flex: 1,

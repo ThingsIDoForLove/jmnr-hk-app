@@ -1,5 +1,7 @@
+import Bugsnag from '@bugsnag/expo';
 import * as SQLite from 'expo-sqlite';
 import { DonationRecord, ExpenseRecord } from '../types/data';
+import { runMigrations } from './DatabaseMigrations';
 
 class DatabaseService {
   private connectionPool: SQLite.SQLiteDatabase[] = [];
@@ -8,36 +10,98 @@ class DatabaseService {
   private isRecovering = false;
   private connectionMutex = false;
   private dbInitialized = false;
+  private initPromise: Promise<void> | null = null;
 
   async init(): Promise<void> {
+    // If initialization is already in progress, wait for it
+    if (this.initPromise) {
+      console.log('Database initialization already in progress, waiting...');
+      return this.initPromise;
+    }
+
+    // If already initialized, return immediately
+    if (this.isInitialized()) {
+      console.log('Database already initialized');
+      return;
+    }
+
+    // Start initialization
+    this.initPromise = this.performInit();
+    try {
+      await this.initPromise;
+    } finally {
+      this.initPromise = null;
+    }
+  }
+
+  private async performInit(): Promise<void> {
     try {
       console.log('Initializing SQLite database with connection pooling...');
+      
+      // Clear any existing state
+      this.connectionPool = [];
+      this.activeConnections = 0;
+      this.dbInitialized = false;
       
       // Initialize the connection pool
       await this.initializeConnectionPool();
       
-      // Create tables first, then run migrations
-      await this.createTables();
+      // Verify pool is properly initialized
+      if (this.connectionPool.length === 0) {
+        throw new Error('Connection pool initialization failed - no connections created');
+      }
+      
+      console.log(`Connection pool ready with ${this.connectionPool.length} connections`);
+      
+      // Only run migrations (no more createTables)
       await this.migrateDatabase();
       
       this.dbInitialized = true;
       console.log('Database initialization completed successfully');
     } catch (error) {
       console.error('Failed to initialize SQLite database:', error);
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
       throw new Error(`Database initialization failed: ${error}`);
     }
   }
 
   private async initializeConnectionPool(): Promise<void> {
+    console.log(`Initializing connection pool with ${this.maxConnections} connections...`);
+    
+    // Ensure we start with a clean state
+    if (this.connectionPool.length > 0) {
+      console.log('Clearing existing connection pool...');
+      for (const connection of this.connectionPool) {
+        try {
+          await connection.closeAsync();
+        } catch (error) {
+          console.log('Error closing existing connection:', error);
+        }
+      }
+    }
+    
+    this.connectionPool = [];
+    this.activeConnections = 0;
+    
     for (let i = 0; i < this.maxConnections; i++) {
       try {
+        console.log(`Creating connection ${i + 1}/${this.maxConnections}...`);
         const connection = await SQLite.openDatabaseAsync('hisaab-e-khair.db');
+        
+        if (!connection) {
+          throw new Error(`SQLite.openDatabaseAsync returned null for connection ${i + 1}`);
+        }
+        
         this.connectionPool.push(connection);
+        console.log(`Connection ${i + 1} created successfully`);
       } catch (error) {
         console.error(`Failed to create connection ${i + 1}:`, error);
+        Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
         throw error;
       }
     }
+    
+    console.log(`Connection pool initialized with ${this.connectionPool.length} connections`);
   }
 
   isInitialized(): boolean {
@@ -48,6 +112,11 @@ class DatabaseService {
     if (!this.isInitialized()) {
       console.log('Database not initialized, attempting to initialize...');
       await this.init();
+      
+      // Double-check initialization
+      if (!this.isInitialized()) {
+        throw new Error('Database initialization failed - still not initialized after init()');
+      }
     }
   }
 
@@ -60,12 +129,33 @@ class DatabaseService {
     this.connectionMutex = true;
     
     try {
+      // Check if pool is initialized
+      if (this.connectionPool.length === 0) {
+        console.error('Connection pool is empty. Pool size:', this.connectionPool.length);
+        console.error('Database initialized:', this.dbInitialized);
+        console.error('Active connections:', this.activeConnections);
+        throw new Error('Connection pool is empty. Database may not be properly initialized.');
+      }
+      
       // Wait for an available connection
       while (this.activeConnections >= this.maxConnections) {
         await new Promise(resolve => setTimeout(resolve, 10));
       }
       
-      const connection = this.connectionPool[this.activeConnections];
+      // Find an available connection (not using activeConnections as index)
+      const availableIndex = this.activeConnections;
+      const connection = this.connectionPool[availableIndex];
+      
+      if (!connection) {
+        console.error('Connection pool state:', {
+          poolSize: this.connectionPool.length,
+          activeConnections: this.activeConnections,
+          availableIndex,
+          maxConnections: this.maxConnections
+        });
+        throw new Error(`No connection available at index ${availableIndex}. Pool size: ${this.connectionPool.length}`);
+      }
+      
       this.activeConnections++;
       
       return connection;
@@ -80,10 +170,15 @@ class DatabaseService {
 
   private async testConnection(connection: SQLite.SQLiteDatabase): Promise<boolean> {
     try {
+      if (!connection || typeof connection.getFirstAsync !== 'function') {
+        console.error('Invalid connection object:', connection);
+        return false;
+      }
       await connection.getFirstAsync('SELECT 1 as test');
       return true;
     } catch (error) {
       console.error('Connection test failed:', error);
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
       return false;
     }
   }
@@ -104,6 +199,7 @@ class DatabaseService {
           await connection.closeAsync();
         } catch (error) {
           console.log('Error closing connection during recovery:', error);
+          Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
         }
       }
 
@@ -119,6 +215,7 @@ class DatabaseService {
       console.log('Database recovery completed successfully');
     } catch (error) {
       console.error('Database recovery failed:', error);
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
       throw error;
     } finally {
       this.isRecovering = false;
@@ -149,9 +246,11 @@ class DatabaseService {
       } catch (error) {
         attempts++;
         console.error(`Database operation failed, attempt ${attempts}/${maxAttempts}:`, error);
+        Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
         
         if (attempts >= maxAttempts) {
           console.error('Max recovery attempts reached, throwing error');
+          Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
           throw error;
         }
 
@@ -160,6 +259,7 @@ class DatabaseService {
           await this.recoverConnectionPool();
         } catch (recoveryError) {
           console.error('Database recovery failed:', recoveryError);
+          Bugsnag.notify(recoveryError instanceof Error ? recoveryError : new Error(String(recoveryError)));
           // Wait before next attempt
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
@@ -177,94 +277,59 @@ class DatabaseService {
     await this.recoverConnectionPool();
   }
 
+  // Public method to completely reset the database (delete file and reinitialize)
+  async resetDatabase(): Promise<void> {
+    console.log('Database reset requested...');
+    
+    try {
+      // Close all existing connections first
+      for (const connection of this.connectionPool) {
+        try {
+          await connection.closeAsync();
+        } catch (error) {
+          console.log('Error closing connection during reset:', error);
+        }
+      }
+
+      // Clear the pool and reset state
+      this.connectionPool = [];
+      this.activeConnections = 0;
+      this.dbInitialized = false;
+      this.isRecovering = false;
+      this.connectionMutex = false;
+
+      // Delete the database file
+      const FileSystem = await import('expo-file-system');
+      const dbPath = `${FileSystem.documentDirectory}SQLite/hisaab-e-khair.db`;
+      
+      try {
+        await FileSystem.deleteAsync(dbPath);
+        console.log('Database file deleted successfully');
+      } catch (error) {
+        console.log('Database file may not exist or could not be deleted:', error);
+      }
+
+      // Wait a moment before reinitializing
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Reinitialize the database
+      await this.init();
+      console.log('Database reset completed successfully');
+    } catch (error) {
+      console.error('Database reset failed:', error);
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
+      throw error;
+    }
+  }
+
   /**
    * Handles database schema migrations using PRAGMA user_version.
-   * Add migration steps as you increment the schema version.
+   * Delegates to the runMigrations function in DatabaseMigrations.ts
    */
   private async migrateDatabase(): Promise<void> {
     const connection = await this.acquireConnection();
     try {
-      const pragmaResult = await connection.getAllAsync('PRAGMA user_version;') as any[];
-      let version = (pragmaResult && pragmaResult.length > 0 && typeof pragmaResult[0].user_version === 'number')
-        ? pragmaResult[0].user_version
-        : 0;
-
-      // Migration to version 1: add book_no and receipt_serial_no to donations
-      if (version < 1) {
-        // Check if donations table exists first
-        const tables = await connection.getAllAsync("SELECT name FROM sqlite_master WHERE type='table' AND name='donations';") as any[];
-        if (tables.length > 0) {
-          // Check if book_no column exists
-          const tableInfo = await connection.getAllAsync("PRAGMA table_info(donations);") as any[];
-          const hasBookNo = tableInfo.some(col => col.name === 'book_no');
-          const hasReceiptSerialNo = tableInfo.some(col => col.name === 'receipt_serial_no');
-
-          if (!hasBookNo) {
-            await connection.execAsync('ALTER TABLE donations ADD COLUMN book_no TEXT;');
-          }
-          
-          if (!hasReceiptSerialNo) {
-            await connection.execAsync('ALTER TABLE donations ADD COLUMN receipt_serial_no INTEGER;');
-          }
-        }
-        
-        await connection.execAsync('PRAGMA user_version = 1;');
-      }
-      // Add more migrations as needed
-    } finally {
-      this.releaseConnection();
-    }
-  }
-
-  private async createTables(): Promise<void> {
-    const connection = await this.acquireConnection();
-    try {
-      console.log('Creating tables...');
-
-      // Create donations table
-      await connection.execAsync(`
-        CREATE TABLE IF NOT EXISTS donations (
-          id TEXT PRIMARY KEY,
-          amount REAL NOT NULL,
-          currency TEXT NOT NULL,
-          benefactor_name TEXT NOT NULL,
-          benefactor_phone TEXT NOT NULL,
-          benefactor_address TEXT,
-          recipient TEXT NOT NULL,
-          category TEXT NOT NULL,
-          description TEXT,
-          date TEXT NOT NULL,
-          location_lat REAL,
-          location_lng REAL,
-          receipt_image TEXT,
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          sync_status TEXT NOT NULL DEFAULT 'pending'
-        );
-      `);
-
-      // Create expenses table
-      await connection.execAsync(`
-        CREATE TABLE IF NOT EXISTS expenses (
-          id TEXT PRIMARY KEY,
-          amount REAL NOT NULL,
-          currency TEXT NOT NULL,
-          payee TEXT NOT NULL,
-          category TEXT NOT NULL,
-          description TEXT,
-          date TEXT NOT NULL,
-          is_personal INTEGER NOT NULL,
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          sync_status TEXT NOT NULL DEFAULT 'pending'
-        );
-      `);
-
-      // Create indexes for better performance
-      await connection.execAsync(`
-        CREATE INDEX IF NOT EXISTS idx_donations_sync_status ON donations (sync_status);
-        CREATE INDEX IF NOT EXISTS idx_donations_date ON donations (date);
-      `);
+      await runMigrations(connection);
     } finally {
       this.releaseConnection();
     }
@@ -402,6 +467,7 @@ class DatabaseService {
       });
     } catch (error) {
       console.error('Error getting total donations:', error);
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
       return 0;
     }
   }
@@ -414,6 +480,11 @@ class DatabaseService {
       });
     } catch (error) {
       console.error('Error getting total amount:', error);
+      if (error instanceof Error) {
+        Bugsnag.notify(error);
+      } else {
+        Bugsnag.notify(new Error(String(error)));
+      }
       return 0;
     }
   }
@@ -426,6 +497,7 @@ class DatabaseService {
       });
     } catch (error) {
       console.error('Error getting pending sync count:', error);
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
       return 0;
     }
   }
@@ -521,6 +593,7 @@ class DatabaseService {
       });
     } catch (error) {
       console.error('Error getting total expenses:', error);
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
       return 0;
     }
   }
@@ -533,6 +606,7 @@ class DatabaseService {
       });
     } catch (error) {
       console.error('Error getting total expense amount:', error);
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
       return 0;
     }
   }
@@ -545,6 +619,7 @@ class DatabaseService {
       });
     } catch (error) {
       console.error('Error getting pending sync expense count:', error);
+      Bugsnag.notify(error instanceof Error ? error : new Error(String(error)));
       return 0;
     }
   }
