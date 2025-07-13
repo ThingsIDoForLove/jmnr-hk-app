@@ -117,9 +117,9 @@ export function useSync() {
           recipient: donation.recipient,
           category: donation.category,
           description: donation.description,
-          date: donation.date,
           bookNo: donation.bookNo,
           serialNo: donation.receiptSerialNo, 
+          date: donation.date,
         }));
         
         const batchString = JSON.stringify(cleanBatch);
@@ -140,7 +140,7 @@ export function useSync() {
         console.log('================================');
 
         try {
-          const res = await fetch(`${API_BASE_URL}/donations/bulk-save`, {
+          const res = await fetch(`${API_BASE_URL}/v1.1/donations/bulk-save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

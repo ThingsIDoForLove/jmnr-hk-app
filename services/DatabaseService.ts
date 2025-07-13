@@ -16,9 +16,9 @@ class DatabaseService {
       // Initialize the connection pool
       await this.initializeConnectionPool();
       
-      // Run migrations and create tables on the first connection
-      await this.migrateDatabase();
+      // Create tables first, then run migrations
       await this.createTables();
+      await this.migrateDatabase();
       
       this.dbInitialized = true;
       console.log('Database initialization completed successfully');
@@ -191,8 +191,23 @@ class DatabaseService {
 
       // Migration to version 1: add book_no and receipt_serial_no to donations
       if (version < 1) {
-        await connection.execAsync('ALTER TABLE donations ADD COLUMN book_no TEXT;');
-        await connection.execAsync('ALTER TABLE donations ADD COLUMN receipt_serial_no INTEGER;');
+        // Check if donations table exists first
+        const tables = await connection.getAllAsync("SELECT name FROM sqlite_master WHERE type='table' AND name='donations';") as any[];
+        if (tables.length > 0) {
+          // Check if book_no column exists
+          const tableInfo = await connection.getAllAsync("PRAGMA table_info(donations);") as any[];
+          const hasBookNo = tableInfo.some(col => col.name === 'book_no');
+          const hasReceiptSerialNo = tableInfo.some(col => col.name === 'receipt_serial_no');
+
+          if (!hasBookNo) {
+            await connection.execAsync('ALTER TABLE donations ADD COLUMN book_no TEXT;');
+          }
+          
+          if (!hasReceiptSerialNo) {
+            await connection.execAsync('ALTER TABLE donations ADD COLUMN receipt_serial_no INTEGER;');
+          }
+        }
+        
         await connection.execAsync('PRAGMA user_version = 1;');
       }
       // Add more migrations as needed
